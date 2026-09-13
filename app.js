@@ -1679,10 +1679,10 @@ function renderVote() {
 
                 ${session.players
                     .map(
-                        player => `
+                        (player, index) => `
                             <button
                                 class="choice-btn"
-                                onclick="selectVote(${JSON.stringify(player)})"
+                                onclick="selectVote(${index})"
                             >
                                 ${escapeHTML(player)}
                             </button>
@@ -1699,7 +1699,10 @@ function renderVote() {
 }
 
 
-function selectVote(player) {
+function selectVote(index) {
+
+    const player =
+        session.players[index];
 
     session.voteChoices.push(player);
 
