@@ -756,6 +756,12 @@ function getContentText() {
         return "Préparez-vous.";
     }
 
+    const actorLabel =
+        escapeHTML(
+            session.currentActor ||
+            "Le joueur désigné"
+        );
+
     switch (game.contentPool) {
 
         case "VOTE":
@@ -803,19 +809,28 @@ function getContentText() {
             `;
 
 
+        /* ============================================================
+           CONTENUS SECRETS — NE JAMAIS RÉVÉLER EN PUBLIC.
+           Ces pools sont déjà montrés en privé pendant PRIVATE_REVEAL
+           (voir getPrivateContentHTML()). L'écran public PLAY doit
+           rester neutre : il ne doit jamais reprendre content.word,
+           content.mission, content.rule, content.prompt, etc.
+           ============================================================ */
+
         case "FORBIDDEN_WORD":
 
             return `
                 <div class="game-label">
-                    MOT À ÉVITER
+                    MOT INTERDIT
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(content.word)}
+                    Restez attentifs
                 </div>
 
                 <div class="game-subtext">
-                    À éviter pendant le défi.
+                    ${actorLabel} doit éviter un mot secret
+                    pendant la conversation.
                 </div>
             `;
 
@@ -828,38 +843,65 @@ function getContentText() {
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(content.word)}
+                    Restez attentifs
                 </div>
 
                 <div class="game-subtext">
-                    Interdits :
-                    ${(content.forbidden || [])
-                        .map(word => escapeHTML(word))
-                        .join(", ")}
+                    ${actorLabel} a un mot piège
+                    à ne pas prononcer.
                 </div>
             `;
 
 
         case "TRAP_PROMPT":
         case "DESCRIPTION":
-        case "IMPRO":
-        case "DUO":
-        case "BLUFF":
 
-            return escapeHTML(
-                content.prompt
-            );
+            return `
+                <div class="game-label">
+                    DÉFI SECRET
+                </div>
+
+                <div class="game-main-text">
+                    ${actorLabel} relève un défi secret
+                </div>
+
+                <div class="game-subtext">
+                    Le reste du groupe doit deviner.
+                </div>
+            `;
+
+
+        case "IMPRO":
+
+            return `
+                <div class="game-label">
+                    IMPRO
+                </div>
+
+                <div class="game-main-text">
+                    ${actorLabel} improvise
+                </div>
+
+                <div class="game-subtext">
+                    Une consigne secrète guide sa scène.
+                </div>
+            `;
 
 
         case "GUESS_WORD":
 
             return `
                 <div class="game-label">
-                    MOT SECRET
+                    MOT À DEVINER
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(content.word)}
+                    ${actorLabel} connaît le mot
+                </div>
+
+                <div class="game-subtext">
+                    Le groupe doit le faire deviner
+                    sans le dire.
                 </div>
             `;
 
@@ -872,16 +914,30 @@ function getContentText() {
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(content.expression)}
+                    ${actorLabel} fait deviner une expression
+                </div>
+
+                <div class="game-subtext">
+                    Elle lui a été révélée en privé.
                 </div>
             `;
 
 
         case "MIME":
 
-            return escapeHTML(
-                content.action
-            );
+            return `
+                <div class="game-label">
+                    MIME
+                </div>
+
+                <div class="game-main-text">
+                    ${actorLabel} mime en silence
+                </div>
+
+                <div class="game-subtext">
+                    Le groupe doit deviner quoi.
+                </div>
+            `;
 
 
         case "MISSION":
@@ -892,7 +948,12 @@ function getContentText() {
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(content.mission)}
+                    Mission secrète en cours
+                </div>
+
+                <div class="game-subtext">
+                    ${actorLabel} connaît sa mission.
+                    Le groupe doit deviner s'il l'accomplit.
                 </div>
             `;
 
@@ -901,13 +962,31 @@ function getContentText() {
 
             return `
                 <div class="game-label">
-                    RÈGLE
+                    RÈGLE SECRÈTE
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(content.rule)}
+                    Une règle s'applique
+                </div>
+
+                <div class="game-subtext">
+                    ${actorLabel} connaît la règle.
+                    Le groupe doit la découvrir.
                 </div>
             `;
+
+
+        /* ============================================================
+           Ces pools ne sont jamais passés en privé (phone.mode = NONE),
+           donc pas de fuite possible : contenu affiché tel quel.
+           ============================================================ */
+
+        case "DUO":
+        case "BLUFF":
+
+            return escapeHTML(
+                content.prompt
+            );
 
 
         case "STATEMENTS":
