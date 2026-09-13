@@ -1,6 +1,6 @@
 /* ============================================================
    SOIRÉE — PARTY ENGINE
-   BUILD 04.0
+   BUILD 04.1
 
    Architecture :
    GAME
@@ -8,12 +8,7 @@
    → ROLES
    → SCREENS
    → ACTIONS
-
-   IMPORTANT :
-   Les informations privées ne sont jamais affichées
-   dans l'écran public.
    ============================================================ */
-
 
 const app = document.getElementById("app");
 
@@ -74,7 +69,7 @@ function navigate(screen) {
 
 function randomItem(array) {
 
-    if (!array || !array.length) {
+    if (!Array.isArray(array) || !array.length) {
         return null;
     }
 
@@ -171,8 +166,7 @@ function loadSession() {
         }
 
         if (Array.isArray(saved.playerHistory)) {
-            session.playerHistory =
-                saved.playerHistory;
+            session.playerHistory = saved.playerHistory;
         }
 
     } catch (error) {
@@ -193,15 +187,13 @@ function loadSession() {
 
 function getAvailablePlayers() {
 
-    const recent =
-        session.playerHistory.slice(
-            -CONFIG.ROTATION.RECENT_PLAYER_LIMIT
-        );
+    const recent = session.playerHistory.slice(
+        -CONFIG.ROTATION.RECENT_PLAYER_LIMIT
+    );
 
-    let available =
-        session.players.filter(
-            player => !recent.includes(player)
-        );
+    let available = session.players.filter(
+        player => !recent.includes(player)
+    );
 
     if (!available.length) {
         available = [...session.players];
@@ -214,18 +206,12 @@ function getAvailablePlayers() {
 
 function choosePlayer() {
 
-    const available =
-        getAvailablePlayers();
+    const available = getAvailablePlayers();
 
-    const player =
-        randomItem(available);
+    const player = randomItem(available);
 
     if (player) {
-
-        session.playerHistory.push(
-            player
-        );
-
+        session.playerHistory.push(player);
     }
 
     return player;
@@ -235,38 +221,28 @@ function choosePlayer() {
 
 function chooseTwoPlayers() {
 
-    const available =
-        getAvailablePlayers();
+    const available = getAvailablePlayers();
 
     if (available.length >= 2) {
 
-        const players =
-            available.slice(0, 2);
+        const players = available.slice(0, 2);
 
         players.forEach(player => {
-
-            session.playerHistory.push(
-                player
-            );
-
+            session.playerHistory.push(player);
         });
 
         return players;
 
     }
 
-    return shuffle(
-        session.players
-    ).slice(0, 2);
+    return shuffle(session.players).slice(0, 2);
 
 }
 
 
 function choosePair() {
 
-    return shuffle(
-        session.players
-    ).slice(0, 2);
+    return shuffle(session.players).slice(0, 2);
 
 }
 
@@ -279,7 +255,7 @@ function getAllPlayers() {
 
 
 /* ============================================================
-   JEUX
+   SÉLECTION DES JEUX
    ============================================================ */
 
 function isCompatible(game) {
@@ -315,7 +291,7 @@ function isFamilyOverused(game) {
             .slice(-limit)
             .map(id =>
                 GAMES.find(
-                    game => game.id === id
+                    item => item.id === id
                 )
             )
             .filter(Boolean);
@@ -325,8 +301,7 @@ function isFamilyOverused(game) {
     }
 
     return recent.every(
-        item =>
-            item.family === game.family
+        item => item.family === game.family
     );
 
 }
@@ -334,28 +309,25 @@ function isFamilyOverused(game) {
 
 function getCandidates() {
 
-    let candidates =
-        GAMES.filter(game => {
+    let candidates = GAMES.filter(game => {
 
-            if (!isCompatible(game)) {
-                return false;
-            }
+        if (!isCompatible(game)) {
+            return false;
+        }
 
-            if (isGameOnCooldown(game)) {
-                return false;
-            }
+        if (isGameOnCooldown(game)) {
+            return false;
+        }
 
-            return true;
+        return true;
 
-        });
+    });
 
     if (!candidates.length) {
 
-        candidates =
-            GAMES.filter(
-                game =>
-                    isCompatible(game)
-            );
+        candidates = GAMES.filter(
+            game => isCompatible(game)
+        );
 
     }
 
@@ -369,9 +341,7 @@ function scoreGame(game) {
     let score = 100;
 
     const intensity =
-        getIntensityConfig(
-            session.intensity
-        );
+        getIntensityConfig(session.intensity);
 
     const distance =
         Math.abs(
@@ -387,12 +357,9 @@ function scoreGame(game) {
 
     if (
         session.currentGame &&
-        session.currentGame.family ===
-        game.family
+        session.currentGame.family === game.family
     ) {
-
         score -= 15;
-
     }
 
     if (game.family === "CHAOS") {
@@ -416,18 +383,14 @@ function scoreGame(game) {
         100 *
         CONFIG.PROBABILITY.RANDOMNESS;
 
-    return Math.max(
-        score,
-        1
-    );
+    return Math.max(score, 1);
 
 }
 
 
 function chooseGame() {
 
-    const candidates =
-        getCandidates();
+    const candidates = getCandidates();
 
     if (!candidates.length) {
         return null;
@@ -441,8 +404,7 @@ function chooseGame() {
 
     const total =
         scored.reduce(
-            (sum, item) =>
-                sum + item.score,
+            (sum, item) => sum + item.score,
             0
         );
 
@@ -470,16 +432,11 @@ function chooseGame() {
 
 function getContentForGame(game) {
 
-    if (!game) {
+    if (!game || !game.contentPool) {
         return null;
     }
 
-    const pool =
-        game.contentPool;
-
-    if (!pool) {
-        return null;
-    }
+    const pool = game.contentPool;
 
     if (pool === "HOT") {
         return getHotQuestion();
@@ -545,15 +502,12 @@ function getChaosContent() {
 function assignRoles(game) {
 
     session.currentActor = null;
-
     session.currentTargets = [];
-
     session.currentPair = [];
 
     if (!game) {
         return;
     }
-
 
     switch (game.targetType) {
 
@@ -562,8 +516,9 @@ function assignRoles(game) {
             session.currentActor =
                 choosePlayer();
 
-            session.currentTargets =
-                [session.currentActor];
+            session.currentTargets = [
+                session.currentActor
+            ];
 
             break;
 
@@ -610,8 +565,9 @@ function assignRoles(game) {
             session.currentActor =
                 choosePlayer();
 
-            session.currentTargets =
-                [session.currentActor];
+            session.currentTargets = [
+                session.currentActor
+            ];
 
             break;
 
@@ -626,13 +582,12 @@ function assignRoles(game) {
 
 
 /* ============================================================
-   PRÉPARATION D'UNE PARTIE
+   PRÉPARATION D'UN TOUR
    ============================================================ */
 
 function prepareRound() {
 
-    const game =
-        chooseGame();
+    const game = chooseGame();
 
     if (!game) {
         return null;
@@ -641,25 +596,17 @@ function prepareRound() {
     const content =
         getContentForGame(game);
 
-    session.currentGame =
-        game;
-
-    session.currentContent =
-        content;
+    session.currentGame = game;
+    session.currentContent = content;
 
     assignRoles(game);
 
     session.currentPhase =
         game.phases?.[0] || "INTRO";
 
-    session.currentGame =
-        game;
-
     session.round++;
 
-    session.history.push(
-        game.id
-    );
+    session.history.push(game.id);
 
     if (
         session.history.length >
@@ -671,7 +618,6 @@ function prepareRound() {
     }
 
     session.voteChoices = [];
-
     session.selectedChoice = null;
 
     saveSession();
@@ -687,19 +633,41 @@ function prepareRound() {
 
 function startRound() {
 
-    const game =
-        prepareRound();
+    const game = prepareRound();
 
     if (!game) {
+
+        alert(
+            "Impossible de trouver un jeu compatible avec le nombre de joueurs."
+        );
+
         return;
+
     }
 
-    GAME_FLOW.resetGameFlow();
+    /*
+       IMPORTANT :
+       resetGameFlow() est une fonction globale
+       définie dans gameFlow.js.
+    */
 
-    startGameFlow(
-        game,
-        session.players
-    );
+    resetGameFlow();
+
+    const flowStarted =
+        startGameFlow(
+            game,
+            session.players
+        );
+
+    if (!flowStarted) {
+
+        console.error(
+            "Impossible de démarrer le GAME FLOW."
+        );
+
+        return;
+
+    }
 
     setCurrentActor(
         session.currentActor
@@ -717,16 +685,25 @@ function startRound() {
 
     }
 
+    /*
+       Le contenu public est envoyé au moteur.
+    */
+
     setPublicContent(
         session.currentContent
     );
 
+    /*
+       Le contenu privé sera injecté uniquement
+       lorsqu'une phase privée sera réellement affichée.
+    */
+
     setPrivateContent(null);
 
-    syncPhase();
+    session.currentPhase =
+        GAME_FLOW.currentPhase;
 
-    session.screen =
-        "GAME";
+    session.screen = "GAME";
 
     render();
 
@@ -735,11 +712,8 @@ function startRound() {
 
 function syncPhase() {
 
-    const phase =
-        GAME_FLOW.currentPhase;
-
     session.currentPhase =
-        phase;
+        GAME_FLOW.currentPhase;
 
     render();
 
@@ -753,8 +727,7 @@ function advancePhase() {
 
     if (!next) {
 
-        session.screen =
-            "HOME";
+        session.screen = "HOME";
 
         render();
 
@@ -783,7 +756,6 @@ function getContentText() {
         return "Préparez-vous.";
     }
 
-
     switch (game.contentPool) {
 
         case "VOTE":
@@ -809,9 +781,7 @@ function getContentText() {
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(
-                        content.category
-                    )}
+                    ${escapeHTML(content.category)}
                 </div>
 
                 <div class="game-subtext">
@@ -828,9 +798,7 @@ function getContentText() {
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(
-                        content.word
-                    )}
+                    ${escapeHTML(content.word)}
                 </div>
             `;
 
@@ -843,10 +811,13 @@ function getContentText() {
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(
-                        content.word
-                    )}
-                `;
+                    ${escapeHTML(content.word)}
+                </div>
+
+                <div class="game-subtext">
+                    À éviter pendant le défi.
+                </div>
+            `;
 
 
         case "TRAP_WORD":
@@ -857,20 +828,14 @@ function getContentText() {
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(
-                        content.word
-                    )}
+                    ${escapeHTML(content.word)}
                 </div>
 
                 <div class="game-subtext">
                     Interdits :
-                    ${content.forbidden
-                        .map(
-                            word =>
-                                escapeHTML(word)
-                        )
-                        .join(", ")
-                    }
+                    ${(content.forbidden || [])
+                        .map(word => escapeHTML(word))
+                        .join(", ")}
                 </div>
             `;
 
@@ -894,9 +859,7 @@ function getContentText() {
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(
-                        content.word
-                    )}
+                    ${escapeHTML(content.word)}
                 </div>
             `;
 
@@ -909,9 +872,7 @@ function getContentText() {
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(
-                        content.expression
-                    )}
+                    ${escapeHTML(content.expression)}
                 </div>
             `;
 
@@ -931,9 +892,7 @@ function getContentText() {
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(
-                        content.mission
-                    )}
+                    ${escapeHTML(content.mission)}
                 </div>
             `;
 
@@ -946,9 +905,7 @@ function getContentText() {
                 </div>
 
                 <div class="game-main-text">
-                    ${escapeHTML(
-                        content.rule
-                    )}
+                    ${escapeHTML(content.rule)}
                 </div>
             `;
 
@@ -995,28 +952,24 @@ function getContentText() {
 
 function formatGenericContent(content) {
 
+    if (!content) {
+        return "À vous de jouer.";
+    }
+
     if (content.text) {
-        return escapeHTML(
-            content.text
-        );
+        return escapeHTML(content.text);
     }
 
     if (content.prompt) {
-        return escapeHTML(
-            content.prompt
-        );
+        return escapeHTML(content.prompt);
     }
 
     if (content.category) {
-        return escapeHTML(
-            content.category
-        );
+        return escapeHTML(content.category);
     }
 
     if (content.action) {
-        return escapeHTML(
-            content.action
-        );
+        return escapeHTML(content.action);
     }
 
     return "À vous de jouer.";
@@ -1025,7 +978,7 @@ function formatGenericContent(content) {
 
 
 /* ============================================================
-   PHASE INTRO
+   INTRO
    ============================================================ */
 
 function renderIntro() {
@@ -1044,9 +997,7 @@ function renderIntro() {
                 </span>
 
                 <span>
-                    ${escapeHTML(
-                        game.family
-                    )}
+                    ${escapeHTML(game.family)}
                 </span>
 
             </div>
@@ -1058,9 +1009,7 @@ function renderIntro() {
                 </div>
 
                 <h1>
-                    ${escapeHTML(
-                        game.name
-                    )}
+                    ${escapeHTML(game.name)}
                 </h1>
 
                 <p>
@@ -1086,7 +1035,7 @@ function renderIntro() {
 
 
 /* ============================================================
-   SÉLECTION CIBLE
+   CIBLE
    ============================================================ */
 
 function renderSelectTarget() {
@@ -1131,7 +1080,7 @@ function renderSelectTarget() {
 
 
 /* ============================================================
-   SÉLECTION JOUEURS
+   SÉLECTION DES JOUEURS
    ============================================================ */
 
 function renderSelectPlayers() {
@@ -1153,12 +1102,8 @@ function renderSelectPlayers() {
 
                 <h1>
                     ${players
-                        .map(
-                            player =>
-                                escapeHTML(player)
-                        )
-                        .join(" + ")
-                    }
+                        .map(player => escapeHTML(player))
+                        .join(" + ")}
                 </h1>
 
                 <p>
@@ -1188,38 +1133,26 @@ function renderSelectPlayers() {
 
 function renderPassPhone() {
 
+    const phone =
+        getPhoneInstruction();
+
     const target =
+        phone?.target ||
         session.currentActor ||
         session.currentTargets[0];
-
-    const mode =
-        session.currentGame.phone?.mode;
 
     let title =
         "DONNE LE TÉLÉPHONE";
 
-    if (mode === "PASS_TO_TARGET") {
-
-        title =
-            `DONNE LE TÉLÉPHONE À ${escapeHTML(
-                target
-            )}`;
-
-    }
-
-    if (mode === "PASS_TO_PLAYER") {
-
-        title =
-            `DONNE LE TÉLÉPHONE À ${escapeHTML(
-                target
-            )}`;
-
-    }
-
-    if (mode === "PASS_TO_PAIR") {
+    if (Array.isArray(target)) {
 
         title =
             "DONNE LE TÉLÉPHONE AU DUO";
+
+    } else if (target) {
+
+        title =
+            `DONNE LE TÉLÉPHONE À ${escapeHTML(target)}`;
 
     }
 
@@ -1268,12 +1201,11 @@ function getPrivateContentHTML() {
         session.currentContent;
 
     const pool =
-        session.currentGame.contentPool;
+        session.currentGame?.contentPool;
 
     if (!content) {
         return "";
     }
-
 
     switch (pool) {
 
@@ -1287,9 +1219,7 @@ function getPrivateContentHTML() {
                     </div>
 
                     <div class="secret-text">
-                        ${escapeHTML(
-                            content.mission
-                        )}
+                        ${escapeHTML(content.mission)}
                     </div>
 
                 </div>
@@ -1306,9 +1236,7 @@ function getPrivateContentHTML() {
                     </div>
 
                     <div class="secret-text">
-                        ${escapeHTML(
-                            content.rule
-                        )}
+                        ${escapeHTML(content.rule)}
                     </div>
 
                 </div>
@@ -1325,20 +1253,14 @@ function getPrivateContentHTML() {
                     </div>
 
                     <div class="secret-text">
-                        ${escapeHTML(
-                            content.word
-                        )}
+                        ${escapeHTML(content.word)}
                     </div>
 
                     <div class="secret-subtext">
                         À éviter :
-                        ${content.forbidden
-                            .map(
-                                word =>
-                                    escapeHTML(word)
-                            )
-                            .join(", ")
-                        }
+                        ${(content.forbidden || [])
+                            .map(word => escapeHTML(word))
+                            .join(", ")}
                     </div>
 
                 </div>
@@ -1355,20 +1277,14 @@ function getPrivateContentHTML() {
                     </div>
 
                     <div class="secret-text">
-                        ${escapeHTML(
-                            content.word
-                        )}
+                        ${escapeHTML(content.word)}
                     </div>
 
                     <div class="secret-subtext">
                         Mots associés interdits :
-                        ${content.forbidden
-                            .map(
-                                word =>
-                                    escapeHTML(word)
-                            )
-                            .join(", ")
-                        }
+                        ${(content.forbidden || [])
+                            .map(word => escapeHTML(word))
+                            .join(", ")}
                     </div>
 
                 </div>
@@ -1387,9 +1303,7 @@ function getPrivateContentHTML() {
                     </div>
 
                     <div class="secret-text">
-                        ${escapeHTML(
-                            content.prompt
-                        )}
+                        ${escapeHTML(content.prompt)}
                     </div>
 
                 </div>
@@ -1406,9 +1320,7 @@ function getPrivateContentHTML() {
                     </div>
 
                     <div class="secret-text">
-                        ${escapeHTML(
-                            content.word
-                        )}
+                        ${escapeHTML(content.word)}
                     </div>
 
                 </div>
@@ -1425,9 +1337,7 @@ function getPrivateContentHTML() {
                     </div>
 
                     <div class="secret-text">
-                        ${escapeHTML(
-                            content.action
-                        )}
+                        ${escapeHTML(content.action)}
                     </div>
 
                 </div>
@@ -1444,9 +1354,7 @@ function getPrivateContentHTML() {
                     </div>
 
                     <div class="secret-text">
-                        ${escapeHTML(
-                            content.expression
-                        )}
+                        ${escapeHTML(content.expression)}
                     </div>
 
                 </div>
@@ -1458,8 +1366,12 @@ function getPrivateContentHTML() {
             return `
                 <div class="secret-card">
 
+                    <div class="secret-label">
+                        INFORMATION SECRÈTE
+                    </div>
+
                     <div class="secret-text">
-                        Information secrète.
+                        Information privée.
                     </div>
 
                 </div>
@@ -1479,6 +1391,15 @@ function renderPrivateReveal() {
     const target =
         session.currentActor ||
         session.currentTargets[0];
+
+    /*
+       Pour cette phase, le contenu est affiché uniquement
+       dans l'écran privé.
+    */
+
+    setPrivateContent(
+        session.currentContent
+    );
 
     app.innerHTML = `
 
@@ -1521,22 +1442,9 @@ function renderPrivateReveal() {
 }
 
 
-/* ============================================================
-   SORTIE ÉCRAN PRIVÉ
-   ============================================================ */
-
 function leavePrivateReveal() {
 
-    /*
-       IMPORTANT :
-       on supprime immédiatement le contenu privé
-       de l'état GAME_FLOW avant de revenir au public.
-    */
-
     clearPrivateContent();
-
-    session.currentPrivateContent =
-        null;
 
     nextGamePhase();
 
@@ -1590,9 +1498,6 @@ function finishPrivateTransition() {
 
     clearPrivateContent();
 
-    session.currentPrivateContent =
-        null;
-
     nextGamePhase();
 
     render();
@@ -1614,12 +1519,8 @@ function renderPlay() {
             ? `
                 <div class="game-target">
                     ${session.currentTargets
-                        .map(
-                            player =>
-                                escapeHTML(player)
-                        )
-                        .join(" • ")
-                    }
+                        .map(player => escapeHTML(player))
+                        .join(" • ")}
                 </div>
             `
             : "";
@@ -1631,9 +1532,7 @@ function renderPlay() {
             <div class="game-header">
 
                 <span>
-                    ${escapeHTML(
-                        game.family
-                    )}
+                    ${escapeHTML(game.family)}
                 </span>
 
                 <span>
@@ -1645,9 +1544,7 @@ function renderPlay() {
             <div class="game-card">
 
                 <div class="game-kicker">
-                    ${escapeHTML(
-                        game.name
-                    )}
+                    ${escapeHTML(game.name)}
                 </div>
 
                 ${targetHTML}
@@ -1678,9 +1575,6 @@ function renderPlay() {
 
 function renderVote() {
 
-    const players =
-        session.players;
-
     app.innerHTML = `
 
         <section class="game-screen">
@@ -1704,19 +1598,18 @@ function renderVote() {
 
             <div class="vote-list">
 
-                ${players
+                ${session.players
                     .map(
                         player => `
                             <button
                                 class="choice-btn"
-                                onclick="selectVote('${escapeHTML(player)}')"
+                                onclick="selectVote(${JSON.stringify(player)})"
                             >
                                 ${escapeHTML(player)}
                             </button>
                         `
                     )
-                    .join("")
-                }
+                    .join("")}
 
             </div>
 
@@ -1746,9 +1639,6 @@ function selectVote(player) {
    ============================================================ */
 
 function renderChoice() {
-
-    const game =
-        session.currentGame;
 
     app.innerHTML = `
 
@@ -1804,7 +1694,7 @@ function chooseOption(choice) {
 
 
 /* ============================================================
-   RESULTAT
+   RÉSULTAT
    ============================================================ */
 
 function renderResult() {
@@ -1846,15 +1736,11 @@ function renderResult() {
             </div>
 
             <h1>
-                ${escapeHTML(
-                    game.name
-                )}
+                ${escapeHTML(game.name)}
             </h1>
 
             <div class="result-card">
-
                 ${resultText}
-
             </div>
 
             <button
@@ -1908,7 +1794,7 @@ function getPenaltyText() {
 
         default:
 
-            return "1 petite gorgée ou alternative sans alcool.";
+            return CONFIG.PENALTIES.DEFAULT;
 
     }
 
@@ -1952,7 +1838,7 @@ function renderPenalty() {
 
 
 /* ============================================================
-   NEXT
+   TOUR SUIVANT
    ============================================================ */
 
 function renderNext() {
@@ -1991,7 +1877,7 @@ function renderNext() {
 
 
 /* ============================================================
-   GAME ROUTER
+   ROUTEUR DU JEU
    ============================================================ */
 
 function renderGame() {
@@ -2128,23 +2014,24 @@ function renderPlayers() {
             </div>
 
             <div class="players-count">
+
                 ${session.players.length}
                 / ${CONFIG.PLAYERS.MAX}
+
             </div>
 
             <div class="player-list">
 
                 ${
                     session.players.length
+
                         ? session.players
                             .map(
                                 (player, index) => `
                                     <div class="player-row">
 
                                         <span>
-                                            ${escapeHTML(
-                                                player
-                                            )}
+                                            ${escapeHTML(player)}
                                         </span>
 
                                         <button
@@ -2157,6 +2044,7 @@ function renderPlayers() {
                                 `
                             )
                             .join("")
+
                         : `
                             <div class="empty-state">
                                 Ajoutez les joueurs.
@@ -2238,9 +2126,7 @@ function addPlayer() {
 
     }
 
-    session.players.push(
-        clean
-    );
+    session.players.push(clean);
 
     saveSession();
 
@@ -2352,8 +2238,7 @@ function renderIntensity() {
                             </button>
                         `
                     )
-                    .join("")
-                }
+                    .join("")}
 
             </div>
 
