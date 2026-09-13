@@ -1,16 +1,18 @@
 /* ============================================================
    SOIRÉE — QUESTION DATABASE
-   BUILD 02.0
-   CONTENU DE BASE
+   BUILD 04.0
+   CONTENU COMPLET
    ============================================================ */
 
 const QUESTIONS = {
+
 
     /* ========================================================
        VOTE
        ======================================================== */
 
     VOTE: [
+
         {
             id: "V001",
             text: "Qui pourrait disparaître pendant une soirée sans prévenir personne ?"
@@ -51,6 +53,7 @@ const QUESTIONS = {
             id: "V010",
             text: "Qui pourrait partir vivre à l'autre bout du monde sur un coup de tête ?"
         }
+
     ],
 
 
@@ -59,6 +62,7 @@ const QUESTIONS = {
        ======================================================== */
 
     MAJORITE: [
+
         {
             id: "M001",
             text: "Qui est le plus susceptible de répondre immédiatement à un message ?"
@@ -91,6 +95,7 @@ const QUESTIONS = {
             id: "M008",
             text: "Qui est le plus susceptible de convaincre tout le monde qu'il a raison ?"
         }
+
     ],
 
 
@@ -99,6 +104,7 @@ const QUESTIONS = {
        ======================================================== */
 
     CIBLE: [
+
         {
             id: "C001",
             text: "Désignez quelqu'un qui semble toujours avoir une excuse."
@@ -123,6 +129,7 @@ const QUESTIONS = {
             id: "C006",
             text: "Désignez quelqu'un qui serait capable de vous convaincre de faire n'importe quoi."
         }
+
     ],
 
 
@@ -131,6 +138,7 @@ const QUESTIONS = {
        ======================================================== */
 
     CONNAISSANCE: [
+
         {
             id: "K001",
             text: "Qui connaît le mieux les habitudes de la personne à sa gauche ?"
@@ -151,6 +159,7 @@ const QUESTIONS = {
             id: "K005",
             text: "Qui saurait le mieux décrire la personnalité de chaque joueur ?"
         }
+
     ],
 
 
@@ -159,6 +168,7 @@ const QUESTIONS = {
        ======================================================== */
 
     SUSPECT: [
+
         {
             id: "S001",
             text: "Qui semble le plus susceptible de mentir maintenant ?"
@@ -179,6 +189,7 @@ const QUESTIONS = {
             id: "S005",
             text: "Qui a le comportement le plus suspect depuis le début de la partie ?"
         }
+
     ],
 
 
@@ -187,6 +198,7 @@ const QUESTIONS = {
        ======================================================== */
 
     CATEGORY: [
+
         {
             id: "CA001",
             category: "Marques de voitures"
@@ -235,6 +247,7 @@ const QUESTIONS = {
             id: "CA012",
             category: "Applications"
         }
+
     ],
 
 
@@ -243,6 +256,7 @@ const QUESTIONS = {
        ======================================================== */
 
     WORD: [
+
         {
             id: "W001",
             word: "Plage"
@@ -291,6 +305,7 @@ const QUESTIONS = {
             id: "W012",
             word: "Anniversaire"
         }
+
     ],
 
 
@@ -299,6 +314,7 @@ const QUESTIONS = {
        ======================================================== */
 
     FORBIDDEN_WORD: [
+
         {
             id: "F001",
             word: "oui",
@@ -329,6 +345,7 @@ const QUESTIONS = {
             word: "toi",
             forbidden: ["tu"]
         }
+
     ],
 
 
@@ -337,6 +354,7 @@ const QUESTIONS = {
        ======================================================== */
 
     BLUFF: [
+
         {
             id: "B001",
             prompt: "Raconte une anecdote improbable. Le groupe doit décider si elle est vraie."
@@ -361,14 +379,16 @@ const QUESTIONS = {
             id: "B006",
             prompt: "Raconte ton pire mensonge raconté à quelqu'un."
         }
+
     ],
 
 
     /* ========================================================
-       STATEMENTS
+       DEUX VÉRITÉS, UN MENSONGE
        ======================================================== */
 
     STATEMENTS: [
+
         {
             id: "ST001",
             instruction: "Donne trois affirmations sur toi : deux vraies et une fausse."
@@ -385,14 +405,16 @@ const QUESTIONS = {
             id: "ST004",
             instruction: "Donne trois choses que tu aimerais faire : deux vraies et une fausse."
         }
+
     ],
 
 
     /* ========================================================
-       HOT
+       QUESTIONS HOT
        ======================================================== */
 
     HOT: [
+
         {
             id: "H001",
             intensity: 2,
@@ -443,6 +465,7 @@ const QUESTIONS = {
             intensity: 3,
             text: "Quel est le pire mensonge que tu aies raconté à quelqu'un que tu aimais ?"
         }
+
     ],
 
 
@@ -451,6 +474,7 @@ const QUESTIONS = {
        ======================================================== */
 
     CHOICE: [
+
         {
             id: "CH001",
             text: "Préférerais-tu pouvoir lire les pensées ou voir le futur ?"
@@ -483,6 +507,7 @@ const QUESTIONS = {
             id: "CH008",
             text: "Préférerais-tu avoir toujours raison ou toujours avoir de la chance ?"
         }
+
     ],
 
 
@@ -491,6 +516,7 @@ const QUESTIONS = {
        ======================================================== */
 
     GROUP_TRUTH: [
+
         {
             id: "GT001",
             text: "Chacun donne une première impression honnête qu'il a eue sur quelqu'un ici."
@@ -511,6 +537,7 @@ const QUESTIONS = {
             id: "GT005",
             text: "Chacun dit qui il appellerait en premier en cas de gros problème."
         }
+
     ],
 
 
@@ -519,6 +546,7 @@ const QUESTIONS = {
        ======================================================== */
 
     EXPRESSION: [
+
         {
             id: "E001",
             expression: "Avoir le cœur sur la main"
@@ -559,6 +587,7 @@ const QUESTIONS = {
             id: "E010",
             expression: "Avoir un poil dans la main"
         }
+
     ],
 
 
@@ -567,6 +596,7 @@ const QUESTIONS = {
        ======================================================== */
 
     MIME: [
+
         {
             id: "MI001",
             action: "Faire semblant de conduire une voiture"
@@ -599,6 +629,7 @@ const QUESTIONS = {
             id: "MI008",
             action: "Faire semblant d'être une célébrité"
         }
+
     ],
 
 
@@ -607,6 +638,7 @@ const QUESTIONS = {
        ======================================================== */
 
     IMPRO: [
+
         {
             id: "I001",
             prompt: "Tu es un agent secret qui vient de perdre son identité."
@@ -631,6 +663,7 @@ const QUESTIONS = {
             id: "I006",
             prompt: "Tu dois convaincre le groupe que tu viens du futur."
         }
+
     ],
 
 
@@ -639,6 +672,7 @@ const QUESTIONS = {
        ======================================================== */
 
     DUO: [
+
         {
             id: "D001",
             prompt: "À deux, inventez une entreprise complètement inutile."
@@ -663,6 +697,7 @@ const QUESTIONS = {
             id: "D006",
             prompt: "À deux, essayez de vendre un objet présent dans la pièce comme s'il valait une fortune."
         }
+
     ],
 
 
@@ -671,6 +706,7 @@ const QUESTIONS = {
        ======================================================== */
 
     MISSION: [
+
         {
             id: "MS001",
             mission: "Fais dire le mot « voiture » à quelqu'un sans lui demander directement."
@@ -695,6 +731,7 @@ const QUESTIONS = {
             id: "MS006",
             mission: "Convaincs quelqu'un que tu as oublié quelque chose d'important."
         }
+
     ],
 
 
@@ -703,13 +740,14 @@ const QUESTIONS = {
        ======================================================== */
 
     SECRET_RULE: [
+
         {
             id: "R001",
-            rule: "Pendant les deux prochains tours, la personne ciblée doit terminer chaque phrase par « chef »."
+            rule: "Pendant les deux prochains tours, termine chaque phrase par « chef »."
         },
         {
             id: "R002",
-            rule: "Pendant les trois prochains tours, personne ne doit prononcer le prénom de la personne ciblée."
+            rule: "Pendant les trois prochains tours, personne ne doit prononcer ton prénom."
         },
         {
             id: "R003",
@@ -723,6 +761,153 @@ const QUESTIONS = {
             id: "R005",
             rule: "Pendant deux tours, toute personne qui dit « oui » doit recommencer sa phrase."
         }
+
+    ],
+
+
+    /* ========================================================
+       PIÈGES À MOT
+       ======================================================== */
+
+    TRAP_WORD: [
+
+        {
+            id: "TW001",
+            word: "argent",
+            forbidden: ["fric", "euros"]
+        },
+        {
+            id: "TW002",
+            word: "soirée",
+            forbidden: ["fête", "party"]
+        },
+        {
+            id: "TW003",
+            word: "téléphone",
+            forbidden: ["portable", "mobile"]
+        },
+        {
+            id: "TW004",
+            word: "restaurant",
+            forbidden: ["manger", "repas"]
+        },
+        {
+            id: "TW005",
+            word: "voiture",
+            forbidden: ["bagnole", "véhicule"]
+        },
+        {
+            id: "TW006",
+            word: "amour",
+            forbidden: ["aimer", "couple"]
+        }
+
+    ],
+
+
+    /* ========================================================
+       PIÈGES — PROMPTS
+       ======================================================== */
+
+    TRAP_PROMPT: [
+
+        {
+            id: "TP001",
+            prompt: "Fais parler la cible pendant que tu essaies de lui faire prononcer un mot précis."
+        },
+        {
+            id: "TP002",
+            prompt: "Pose trois questions à la cible sans révéler pourquoi tu les poses."
+        },
+        {
+            id: "TP003",
+            prompt: "Convaincs la cible d'être d'accord avec une affirmation complètement absurde."
+        },
+        {
+            id: "TP004",
+            prompt: "Fais raconter une anecdote embarrassante à la cible sans lui demander directement."
+        },
+        {
+            id: "TP005",
+            prompt: "Fais répéter une même expression à la cible au moins deux fois."
+        }
+
+    ],
+
+
+    /* ========================================================
+       MOTS À DEVINER
+       ======================================================== */
+
+    GUESS_WORD: [
+
+        {
+            id: "GW001",
+            word: "Plage"
+        },
+        {
+            id: "GW002",
+            word: "Avion"
+        },
+        {
+            id: "GW003",
+            word: "Pizza"
+        },
+        {
+            id: "GW004",
+            word: "Fantôme"
+        },
+        {
+            id: "GW005",
+            word: "Mariage"
+        },
+        {
+            id: "GW006",
+            word: "Prison"
+        },
+        {
+            id: "GW007",
+            word: "Vacances"
+        },
+        {
+            id: "GW008",
+            word: "Anniversaire"
+        }
+
+    ],
+
+
+    /* ========================================================
+       DESCRIPTIONS SECRÈTES
+       ======================================================== */
+
+    DESCRIPTION: [
+
+        {
+            id: "DS001",
+            prompt: "Fais deviner un téléphone sans utiliser les mots « téléphone », « portable » ou « appel »."
+        },
+        {
+            id: "DS002",
+            prompt: "Fais deviner une plage sans utiliser les mots « mer », « sable » ou « vacances »."
+        },
+        {
+            id: "DS003",
+            prompt: "Fais deviner une pizza sans utiliser les mots « manger », « fromage » ou « restaurant »."
+        },
+        {
+            id: "DS004",
+            prompt: "Fais deviner une voiture sans utiliser les mots « conduire », « route » ou « véhicule »."
+        },
+        {
+            id: "DS005",
+            prompt: "Fais deviner un anniversaire sans utiliser les mots « gâteau », « cadeau » ou « fête »."
+        },
+        {
+            id: "DS006",
+            prompt: "Fais deviner un avion sans utiliser les mots « voler », « aéroport » ou « voyage »."
+        }
+
     ]
 
 };
@@ -733,11 +918,14 @@ const QUESTIONS = {
    ============================================================ */
 
 function getQuestionPool(type) {
+
     return QUESTIONS[type] || [];
+
 }
 
 
 function getRandomQuestion(type) {
+
     const pool = getQuestionPool(type);
 
     if (!pool.length) {
@@ -747,4 +935,5 @@ function getRandomQuestion(type) {
     return pool[
         Math.floor(Math.random() * pool.length)
     ];
+
 }
