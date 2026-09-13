@@ -467,3 +467,398 @@ body {
         animation-duration: 0.01ms !important;
     }
 }
+/* ============================================================
+   SOIRÉE — BUILD 04.0
+   NOUVEAUX ÉCRANS / GAME FLOW
+   ============================================================ */
+
+
+/* ============================================================
+   GAME HEADER
+   ============================================================ */
+
+.game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+    color: rgba(255,255,255,.55);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+
+/* ============================================================
+   GAME KICKER
+   ============================================================ */
+
+.game-kicker {
+    margin-bottom: 12px;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+
+
+/* ============================================================
+   GAME MAIN TEXT
+   ============================================================ */
+
+.game-main-text {
+    margin-top: 12px;
+    font-size: 30px;
+    line-height: 1.08;
+    font-weight: 900;
+    letter-spacing: -.04em;
+}
+
+
+.game-subtext {
+    margin-top: 16px;
+    color: rgba(255,255,255,.58);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+
+/* ============================================================
+   GAME TARGET
+   ============================================================ */
+
+.game-target {
+    display: inline-flex;
+    margin-bottom: 18px;
+    padding: 8px 12px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 999px;
+    background: rgba(255,255,255,.05);
+    color: rgba(255,255,255,.78);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+
+/* ============================================================
+   GAME CONTENT
+   ============================================================ */
+
+.game-content {
+    margin-top: 10px;
+    color: #fff;
+    font-size: 22px;
+    line-height: 1.3;
+    font-weight: 800;
+}
+
+
+/* ============================================================
+   PRIVATE TRANSITION
+   ============================================================ */
+
+.private-transition {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 32px 22px;
+    text-align: center;
+}
+
+
+.private-transition .private-icon {
+    width: 76px;
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    border-radius: 24px;
+    background: rgba(255,59,129,.12);
+    border: 1px solid rgba(255,59,129,.25);
+    font-size: 32px;
+}
+
+
+.private-transition h1 {
+    max-width: 420px;
+    margin: 0;
+    font-size: 34px;
+    line-height: 1.05;
+    letter-spacing: -.045em;
+    font-weight: 950;
+}
+
+
+.private-transition p {
+    max-width: 360px;
+    margin: 18px 0 30px;
+    color: rgba(255,255,255,.58);
+    line-height: 1.5;
+}
+
+
+/* ============================================================
+   PRIVATE SCREEN
+   ============================================================ */
+
+.private-screen {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 32px 22px;
+    text-align: center;
+}
+
+
+.private-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+
+.private-screen .private-icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    border-radius: 20px;
+    background: rgba(139,92,246,.14);
+    border: 1px solid rgba(139,92,246,.28);
+    font-size: 28px;
+}
+
+
+.private-label {
+    color: var(--accent-2);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .16em;
+}
+
+
+.private-screen h1 {
+    margin: 0 0 8px;
+    font-size: 34px;
+    line-height: 1;
+    font-weight: 950;
+    letter-spacing: -.045em;
+}
+
+
+.private-screen > p {
+    margin: 0 auto 24px;
+    color: rgba(255,255,255,.5);
+    font-size: 14px;
+}
+
+
+/* ============================================================
+   SECRET CARD
+   ============================================================ */
+
+.secret-card {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 auto 26px;
+    padding: 26px 22px;
+    border: 1px solid rgba(139,92,246,.35);
+    border-radius: 26px;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(139,92,246,.15),
+            rgba(255,255,255,.035)
+        );
+    box-shadow:
+        0 20px 60px rgba(0,0,0,.3);
+}
+
+
+.secret-label {
+    margin-bottom: 16px;
+    color: var(--accent-2);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+}
+
+
+.secret-text {
+    color: #fff;
+    font-size: 22px;
+    line-height: 1.3;
+    font-weight: 850;
+}
+
+
+.secret-subtext {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    color: rgba(255,255,255,.58);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+
+/* ============================================================
+   CHOICE / VOTE BUTTONS
+   ============================================================ */
+
+.vote-list,
+.choice-grid {
+    display: grid;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+
+.choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+
+.choice-btn {
+    width: 100%;
+    min-height: 58px;
+    padding: 14px 16px;
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 17px;
+    background: var(--surface);
+    color: #fff;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        transform .12s ease,
+        border-color .12s ease,
+        background .12s ease;
+}
+
+
+.choice-btn:active {
+    transform: scale(.97);
+}
+
+
+.choice-btn:hover {
+    border-color: rgba(255,59,129,.45);
+    background: rgba(255,59,129,.08);
+}
+
+
+/* ============================================================
+   RESULT
+   ============================================================ */
+
+.result-screen {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 32px 22px;
+    text-align: center;
+}
+
+
+.result-screen h1 {
+    margin: 0 0 24px;
+    font-size: 34px;
+    line-height: 1.05;
+    font-weight: 950;
+    letter-spacing: -.045em;
+}
+
+
+.result-card {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 24px;
+    padding: 24px 20px;
+    border-radius: 22px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: var(--surface);
+    color: #fff;
+    font-size: 18px;
+    line-height: 1.45;
+    font-weight: 750;
+}
+
+
+/* ============================================================
+   SCREEN HEADER
+   ============================================================ */
+
+.screen-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: .08em;
+}
+
+
+.back-btn {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px;
+    background: var(--surface);
+    color: #fff;
+    font-size: 22px;
+}
+
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.empty-state {
+    padding: 28px 18px;
+    border: 1px dashed rgba(255,255,255,.12);
+    border-radius: 18px;
+    color: rgba(255,255,255,.45);
+    text-align: center;
+}
+
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media (max-width: 380px) {
+
+    .private-transition h1,
+    .private-screen h1,
+    .result-screen h1 {
+        font-size: 29px;
+    }
+
+    .game-content {
+        font-size: 19px;
+    }
+
+    .secret-text {
+        font-size: 19px;
+    }
+
+}
