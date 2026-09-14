@@ -1,14 +1,19 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0"
+        content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
     >
 
-    <meta name="theme-color" content="#09090D">
+    <meta
+        name="theme-color"
+        content="#09090D"
+    >
 
     <meta
         name="apple-mobile-web-app-capable"
@@ -22,18 +27,46 @@
 
     <title>SOIRÉE — Party Game</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
 </head>
+
 
 <body>
 
-    <main id="app"></main>
+    <main
+        id="app"
+        aria-live="polite"
+    ></main>
+
+
+    <!--
+        ORDRE DE CHARGEMENT IMPORTANT
+
+        CONFIG
+        ↓
+        QUESTIONS
+        ↓
+        GAMES
+        ↓
+        GAME FLOW
+        ↓
+        APP
+    -->
+
+    <script src="config.js"></script>
+
+    <script src="questions.js"></script>
 
     <script src="games.js"></script>
-<script src="questions.js"></script>
-<script src="config.js"></script>
+
     <script src="gameFlow.js"></script>
-<script src="app.js"></script>
+
+    <script src="app.js"></script>
 
 </body>
+
 </html>
