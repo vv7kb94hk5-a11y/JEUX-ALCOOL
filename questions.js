@@ -1,36 +1,49 @@
 /* ============================================================
-   SOIRÉE — CONTENT DATABASE
-   BUILD 07.0
+   SOIRÉE — QUESTIONS
+   BUILD 08.0
+
+   RÈGLE :
+   Chaque pool possède un format cohérent.
+
+   String :
+     contenu directement affichable.
+
+   Object :
+     contenu nécessitant plusieurs informations.
+
+   Aucun jeu ne doit devoir deviner la structure
+   d'une question.
    ============================================================ */
+
 
 const QUESTIONS = {
 
 
     /* ========================================================
-       VOTE
+       VOTE DU GROUPE
        ======================================================== */
 
     VOTE: [
 
-        "Qui pourrait disparaître pendant une soirée sans prévenir personne ?",
+        "Qui serait capable de partir en soirée sans prévenir personne ?",
 
-        "Qui pourrait finir célèbre sans que personne ne sache vraiment pourquoi ?",
+        "Qui serait le plus susceptible d'arriver complètement en retard ?",
 
-        "Qui pourrait envoyer un message à la mauvaise personne ?",
+        "Qui pourrait envoyer un message gênant à la mauvaise personne ?",
 
-        "Qui pourrait survivre le plus longtemps sur une île déserte ?",
+        "Qui serait capable de survivre le moins longtemps sans son téléphone ?",
 
-        "Qui pourrait tomber amoureux le plus rapidement ?",
+        "Qui serait le premier à proposer de continuer la soirée ailleurs ?",
 
-        "Qui pourrait mentir avec le plus d'assurance ?",
+        "Qui pourrait finir la soirée avec une nouvelle histoire improbable ?",
 
-        "Qui pourrait devenir riche en premier ?",
+        "Qui serait capable de faire quelque chose de complètement imprévisible ce soir ?",
 
-        "Qui pourrait faire la plus grosse connerie ce soir ?",
+        "Qui serait le plus susceptible de perdre quelque chose ce soir ?",
 
-        "Qui pourrait être le meilleur espion ?",
+        "Qui pourrait devenir célèbre pour une raison complètement absurde ?",
 
-        "Qui pourrait partir vivre à l'autre bout du monde sur un coup de tête ?"
+        "Qui serait capable de convaincre tout le monde de faire une mauvaise idée ?"
 
     ],
 
@@ -41,55 +54,67 @@ const QUESTIONS = {
 
     MAJORITY: [
 
-        "Qui est le plus susceptible d'arriver en retard ?",
+        "Qui est le plus susceptible de devenir riche ?",
 
-        "Qui est le plus susceptible de répondre immédiatement à un message ?",
+        "Qui pourrait avoir une double vie sans que personne ne le sache ?",
 
-        "Qui est le plus susceptible de garder un secret ?",
+        "Qui serait le plus dangereux avec beaucoup d'argent ?",
 
-        "Qui est le plus susceptible de faire rire tout le monde ?",
+        "Qui pourrait partir vivre à l'autre bout du monde sur un coup de tête ?",
 
-        "Qui est le plus susceptible de prendre une décision complètement imprévisible ?",
+        "Qui serait le premier à accepter une aventure complètement folle ?",
 
-        "Qui est le plus susceptible de convaincre tout le monde qu'il a raison ?"
+        "Qui pourrait devenir célèbre dans le groupe ?"
 
     ],
 
 
     /* ========================================================
-       CIBLE
+       CIBLE DU GROUPE
        ======================================================== */
 
     TARGET: [
 
-        "Désignez quelqu'un qui semble toujours avoir une excuse.",
+        "Désignez la personne qui serait la plus susceptible de faire ça.",
 
-        "Désignez quelqu'un à qui vous ne confieriez jamais votre téléphone déverrouillé.",
+        "Qui mérite le plus d'être mis au défi maintenant ?",
 
-        "Désignez quelqu'un qui pourrait être un excellent acteur.",
+        "Qui serait le choix le plus évident du groupe ?",
 
-        "Désignez quelqu'un qui pourrait vous trahir dans un jeu de bluff.",
+        "Désignez la personne qui connaît le mieux tout le monde ici.",
 
-        "Désignez quelqu'un qui semble cacher quelque chose.",
+        "Qui serait la pire personne à avoir comme colocataire ?",
 
-        "Désignez quelqu'un qui pourrait vous convaincre de faire n'importe quoi."
+        "Qui serait capable de retourner toute la soirée à lui seul ?"
 
     ],
 
 
     /* ========================================================
-       CONNAISSANCE
+       QUI ME CONNAÎT ?
        ======================================================== */
 
     KNOWLEDGE: [
 
-        "Qui connaît le mieux les habitudes de la personne à sa gauche ?",
+        {
+            question: "Quel est le dernier endroit où j'aimerais partir en vacances ?",
+            answerMode: "ORAL"
+        },
 
-        "Qui connaît le mieux les goûts de la personne en face de lui ?",
+        {
+            question: "Quelle est la chose que je supporte le moins chez les autres ?",
+            answerMode: "ORAL"
+        },
 
-        "Qui saurait deviner le choix de chacun dans cette pièce ?",
+        {
+            question: "Quel serait mon week-end idéal ?",
+            answerMode: "ORAL"
+        },
 
-        "Qui connaît le mieux le groupe depuis le début de la soirée ?"
+        {
+            question: "Quelle est la chose que je pourrais acheter sur un coup de tête ?",
+            answerMode: "ORAL"
+        }
 
     ],
 
@@ -100,81 +125,81 @@ const QUESTIONS = {
 
     SUSPECT: [
 
-        "Qui semble le plus susceptible de mentir maintenant ?",
+        "Qui cache probablement quelque chose ce soir ?",
 
-        "Qui cache probablement quelque chose au groupe ?",
+        "Qui pourrait mentir avec le plus de facilité ?",
 
-        "Qui serait le plus difficile à lire pendant un interrogatoire ?",
+        "Qui serait le plus difficile à croire dans une enquête ?",
 
-        "Qui pourrait réussir à bluffer tout le monde ?",
+        "Qui pourrait avoir un secret que personne ne connaît ?",
 
-        "Qui a le comportement le plus suspect depuis le début de la partie ?"
+        "Qui serait le plus suspect s'il quittait soudainement la pièce ?"
 
     ],
 
 
     /* ========================================================
-       CATÉGORIES
+       CATÉGORIE EXPRESS
        ======================================================== */
 
     CATEGORY: [
 
-        "Marques de voitures",
+        "Cite un film avec un acteur connu.",
 
-        "Villes françaises",
+        "Cite une ville française.",
 
-        "Pays",
+        "Cite une marque de voiture.",
 
-        "Films",
+        "Cite quelque chose qu'on trouve dans une cuisine.",
 
-        "Séries",
+        "Cite une application de téléphone.",
 
-        "Plats",
+        "Cite une célébrité.",
 
-        "Métiers",
+        "Cite un sport.",
 
-        "Animaux",
+        "Cite un animal.",
 
-        "Objets dans une maison",
+        "Cite une destination de vacances.",
 
-        "Célébrités",
+        "Cite une chanson connue.",
 
-        "Sports",
+        "Cite un métier.",
 
-        "Applications"
+        "Cite quelque chose qu'on peut trouver dans un bar."
 
     ],
 
 
     /* ========================================================
-       MOTS
+       ASSOCIATION
        ======================================================== */
 
     WORD: [
 
         "Plage",
 
-        "Avion",
-
-        "Téléphone",
-
-        "Pizza",
-
-        "Voiture",
-
-        "Fantôme",
-
-        "Mariage",
-
-        "Prison",
+        "Nuit",
 
         "Argent",
 
         "Vacances",
 
-        "École",
+        "Musique",
 
-        "Anniversaire"
+        "Soirée",
+
+        "Téléphone",
+
+        "Amour",
+
+        "Travail",
+
+        "Alcool",
+
+        "Amitié",
+
+        "Danger"
 
     ],
 
@@ -186,53 +211,77 @@ const QUESTIONS = {
     FORBIDDEN_WORD: [
 
         {
-            word: "oui",
-            forbidden: ["ouais", "yes"]
+            word: "Téléphone",
+            forbidden: [
+                "portable",
+                "mobile",
+                "appeler"
+            ]
         },
 
         {
-            word: "non",
-            forbidden: ["nan", "no"]
+            word: "Argent",
+            forbidden: [
+                "euros",
+                "payer",
+                "fric"
+            ]
         },
 
         {
-            word: "soirée",
-            forbidden: ["fête"]
+            word: "Plage",
+            forbidden: [
+                "mer",
+                "sable",
+                "soleil"
+            ]
         },
 
         {
-            word: "boire",
-            forbidden: ["alcool"]
+            word: "Soirée",
+            forbidden: [
+                "fête",
+                "soir",
+                "party"
+            ]
         },
 
         {
-            word: "moi",
-            forbidden: ["je"]
+            word: "Amour",
+            forbidden: [
+                "couple",
+                "aimer",
+                "coeur"
+            ]
         },
 
         {
-            word: "toi",
-            forbidden: ["tu"]
+            word: "Travail",
+            forbidden: [
+                "bureau",
+                "emploi",
+                "patron"
+            ]
         }
 
     ],
 
 
     /* ========================================================
-       BLUFF
+       BLUFF TOTAL
        ======================================================== */
 
     BLUFF: [
 
-        "Raconte une anecdote improbable. Le groupe doit décider si elle est vraie.",
+        "Invente une histoire crédible que personne ici ne pourra vérifier.",
 
-        "Affirme quelque chose sur toi que personne ici ne peut facilement vérifier.",
+        "Raconte une anecdote complètement improbable comme si elle était vraie.",
 
-        "Raconte une histoire vraie en ajoutant un détail complètement faux.",
+        "Affirme quelque chose de faux avec suffisamment d'assurance pour convaincre le groupe.",
 
-        "Invente une rencontre célèbre et raconte-la avec suffisamment de conviction pour être cru.",
+        "Invente une expérience que tu aurais soi-disant vécue.",
 
-        "Donne une affirmation surprenante sur toi. Le groupe vote : vrai ou faux ?"
+        "Fais croire au groupe que tu connais parfaitement un sujet que tu ne maîtrises pas."
 
     ],
 
@@ -243,11 +292,20 @@ const QUESTIONS = {
 
     STATEMENTS: [
 
-        "Donne trois affirmations sur toi : deux vraies et une fausse.",
+        {
+            instruction: "Donne trois affirmations sur toi : deux vraies et une fausse.",
+            rule: "Le groupe doit trouver laquelle est fausse."
+        },
 
-        "Donne trois anecdotes : deux vraies et une inventée.",
+        {
+            instruction: "Raconte trois petites anecdotes personnelles : deux vraies et une inventée.",
+            rule: "Le groupe vote pour celle qu'il pense être fausse."
+        },
 
-        "Donne trois choses que tu as déjà faites : deux vraies et une fausse."
+        {
+            instruction: "Donne trois choses que tu as déjà faites : deux vraies et une fausse.",
+            rule: "Le groupe doit identifier le mensonge."
+        }
 
     ],
 
@@ -259,60 +317,102 @@ const QUESTIONS = {
     HOT: [
 
         {
-            intensity: 2,
-            text: "Quelle est ta plus grosse honte en soirée ?"
+            intensity: 1,
+            text: "Quelle est la chose la plus gênante que tu aies faite devant quelqu'un que tu voulais impressionner ?"
+        },
+
+        {
+            intensity: 1,
+            text: "Quel est ton plus gros défaut en soirée ?"
         },
 
         {
             intensity: 2,
-            text: "Quelle est la chose la plus gênante que tu aies envoyée par message ?"
+            text: "Quelle personne ici pourrais-tu appeler à 3 heures du matin ?"
         },
 
         {
             intensity: 2,
-            text: "Quelle est la dernière fois où tu as menti pour éviter quelqu'un ?"
-        },
-
-        {
-            intensity: 3,
-            text: "Qui dans cette pièce pourrait le plus facilement te faire craquer ?"
-        },
-
-        {
-            intensity: 3,
             text: "Quel est ton plus gros red flag ?"
         },
 
         {
-            intensity: 3,
-            text: "Quelle est la chose la plus folle que tu aies faite par attirance pour quelqu'un ?"
+            intensity: 2,
+            text: "Quelle est la chose que tu n'oserais jamais avouer spontanément au groupe ?"
         },
 
         {
             intensity: 3,
-            text: "Quel est le pire mensonge que tu aies raconté à quelqu'un que tu aimais ?"
+            text: "Avec qui ici pourrais-tu le plus facilement avoir un date ?"
+        },
+
+        {
+            intensity: 3,
+            text: "Quelle est la personne ici qui pourrait le plus facilement te faire craquer ?"
         }
 
     ],
 
 
     /* ========================================================
-       CHOIX
+       CHOIX IMPOSSIBLE
        ======================================================== */
 
     CHOICE: [
 
-        "Préférerais-tu pouvoir lire les pensées ou voir le futur ?",
+        {
+            question: "Tu préfères ne plus jamais boire d'alcool ou ne plus jamais sortir en soirée ?",
 
-        "Préférerais-tu être extrêmement riche ou extrêmement célèbre ?",
+            choices: [
+                "Plus d'alcool",
+                "Plus de soirées"
+            ]
+        },
 
-        "Préférerais-tu ne plus jamais utiliser ton téléphone ou ne plus jamais voyager ?",
+        {
+            question: "Tu préfères connaître la date de ta mort ou la cause de ta mort ?",
 
-        "Préférerais-tu connaître toute la vérité ou modifier une seule erreur du passé ?",
+            choices: [
+                "La date",
+                "La cause"
+            ]
+        },
 
-        "Préférerais-tu être incapable de mentir ou incapable de dire toute la vérité ?",
+        {
+            question: "Tu préfères être riche mais inconnu ou célèbre mais pauvre ?",
 
-        "Préférerais-tu avoir toujours raison ou toujours avoir de la chance ?"
+            choices: [
+                "Riche et inconnu",
+                "Célèbre et pauvre"
+            ]
+        },
+
+        {
+            question: "Tu préfères pouvoir lire les pensées ou voir le futur ?",
+
+            choices: [
+                "Lire les pensées",
+                "Voir le futur"
+            ]
+        },
+
+        {
+            question: "Tu préfères ne plus avoir de téléphone ou ne plus avoir Internet ?",
+
+            choices: [
+                "Plus de téléphone",
+                "Plus d'Internet"
+            ]
+        },
+
+        {
+            question: "Tu préfères revivre ton meilleur souvenir ou effacer ton pire ?",
+
+            choices: [
+                "Revivre le meilleur",
+                "Effacer le pire"
+            ]
+        }
 
     ],
 
@@ -323,13 +423,13 @@ const QUESTIONS = {
 
     GROUP_TRUTH: [
 
-        "Chacun donne une première impression honnête qu'il a eue sur quelqu'un ici.",
+        "Chacun raconte une chose que personne ici ne sait encore sur lui.",
 
-        "Chacun dit une qualité qu'il apprécie chez la personne à sa droite.",
+        "Chacun raconte une petite honte dont il peut rire aujourd'hui.",
 
-        "Chacun donne une chose que le groupe ignore probablement sur lui.",
+        "Chacun raconte une décision complètement impulsive qu'il a déjà prise.",
 
-        "Chacun désigne une personne avec qui il partirait en vacances."
+        "Chacun raconte une chose qu'il aimerait changer chez lui."
 
     ],
 
@@ -344,11 +444,17 @@ const QUESTIONS = {
 
         "Tomber dans les pommes",
 
+        "Mettre les pieds dans le plat",
+
+        "Avoir la tête dans les nuages",
+
         "Donner sa langue au chat",
 
         "Poser un lapin",
 
-        "Avoir une mémoire de poisson rouge"
+        "Coûter les yeux de la tête",
+
+        "Casser les pieds"
 
     ],
 
@@ -359,53 +465,90 @@ const QUESTIONS = {
 
     MISSION: [
 
-        "Place naturellement le mot « banane » dans une conversation.",
+        "Fais dire le mot « vraiment » à quelqu'un sans lui demander directement de le prononcer.",
 
-        "Fais rire une personne sans qu'elle comprenne que c'était ta mission.",
+        "Fais rire une personne du groupe sans qu'elle comprenne que c'était ton objectif.",
 
-        "Obtiens discrètement un « pourquoi ? » de quelqu'un.",
+        "Obtiens un high-five de quelqu'un sans expliquer pourquoi.",
 
-        "Fais parler quelqu'un d'un film sans lui poser directement la question."
+        "Fais parler quelqu'un de ses dernières vacances.",
+
+        "Amène naturellement quelqu'un à parler de musique.",
+
+        "Fais poser une question à quelqu'un sur toi."
 
     ],
 
 
     /* ========================================================
-       DEVINE MON MOT
+       MOT À DEVINER
        ======================================================== */
 
     GUESS_WORD: [
 
-        "Téléphone",
+        {
+            word: "Pizza",
+            hint: "On peut la commander."
+        },
 
-        "Vacances",
+        {
+            word: "Plage",
+            hint: "On y va surtout quand il fait beau."
+        },
 
-        "Fantôme",
+        {
+            word: "Téléphone",
+            hint: "Presque tout le monde en possède un."
+        },
 
-        "Pizza",
+        {
+            word: "Avion",
+            hint: "Il permet de voyager très loin."
+        },
 
-        "Mariage",
+        {
+            word: "Cinéma",
+            hint: "On y va pour regarder des films."
+        },
 
-        "Prison",
+        {
+            word: "Restaurant",
+            hint: "On y va principalement pour manger."
+        },
 
-        "Plage",
+        {
+            word: "Musique",
+            hint: "Elle peut accompagner toute une soirée."
+        },
 
-        "Argent"
+        {
+            word: "Vacances",
+            hint: "On les attend généralement avec impatience."
+        }
 
     ],
 
 
     /* ========================================================
-       DESCRIPTION
+       DESCRIPTION IMPOSSIBLE
        ======================================================== */
 
     DESCRIPTION: [
 
-        "Décris un animal sans prononcer son nom ni faire son bruit.",
+        {
+            word: "Pizza",
+            rule: "Fais deviner le mot sans utiliser le nom d'un ingrédient."
+        },
 
-        "Décris une célébrité sans donner son métier.",
+        {
+            word: "Téléphone",
+            rule: "Fais deviner l'objet sans dire à quoi il sert directement."
+        },
 
-        "Décris un objet présent dans la pièce sans le montrer."
+        {
+            word: "Plage",
+            rule: "Fais deviner l'endroit sans utiliser les mots mer, sable ou soleil."
+        }
 
     ],
 
@@ -416,15 +559,15 @@ const QUESTIONS = {
 
     MIME: [
 
-        "Faire du ski",
+        "Faire semblant de conduire",
 
-        "Réparer une voiture",
+        "Chercher ses clés partout",
 
-        "Être coincé dans un ascenseur",
+        "Faire du sport",
 
-        "Chercher ses clés",
+        "Être réveillé par une alarme",
 
-        "Faire semblant d'être un robot"
+        "Commander au restaurant"
 
     ],
 
@@ -435,11 +578,11 @@ const QUESTIONS = {
 
     TRAP_PROMPT: [
 
-        "Fais raconter au groupe une histoire sur son dernier voyage.",
+        "Fais parler naturellement la personne de ses vacances.",
 
-        "Fais dire le mot « vraiment » à quelqu'un.",
+        "Fais prononcer à quelqu'un le prénom d'une autre personne.",
 
-        "Fais poser une question à la personne à ta gauche."
+        "Fais demander à quelqu'un quelle heure il est."
 
     ],
 
@@ -451,19 +594,39 @@ const QUESTIONS = {
     TRAP_WORD: [
 
         {
-            word: "vraiment"
+            word: "Pizza",
+            forbidden: [
+                "restaurant",
+                "fromage",
+                "pâte"
+            ]
         },
 
         {
-            word: "genre"
+            word: "Vacances",
+            forbidden: [
+                "voyage",
+                "plage",
+                "hôtel"
+            ]
         },
 
         {
-            word: "franchement"
+            word: "Téléphone",
+            forbidden: [
+                "portable",
+                "mobile",
+                "écran"
+            ]
         },
 
         {
-            word: "exactement"
+            word: "Musique",
+            forbidden: [
+                "chanson",
+                "son",
+                "écouter"
+            ]
         }
 
     ],
@@ -475,12 +638,155 @@ const QUESTIONS = {
 
     IMPRO: [
 
-        "Vends un objet banal comme s'il coûtait 10 000 €.",
+        "Fais une publicité improvisée pour l'objet le plus proche de toi.",
 
-        "Défends une opinion absurde pendant 20 secondes.",
+        "Décris ton voisin comme si tu étais commentateur sportif.",
 
-        "Fais une publicité improvisée pour la personne à ta droite."
+        "Fais un discours extrêmement sérieux sur un sujet complètement ridicule."
 
     ]
 
 };
+
+
+/* ============================================================
+   VALIDATION DES POOLS
+   ============================================================ */
+
+function validateQuestions() {
+
+    const errors = [];
+
+    Object.entries(
+        QUESTIONS
+    ).forEach(
+        ([poolName, pool]) => {
+
+            if (
+                !Array.isArray(pool) ||
+                pool.length === 0
+            ) {
+
+                errors.push(
+                    `${poolName} : pool vide ou invalide`
+                );
+
+            }
+
+        }
+    );
+
+
+    /*
+     * STATEMENTS doit obligatoirement
+     * contenir instruction + rule.
+     */
+
+    QUESTIONS.STATEMENTS.forEach(
+        (item, index) => {
+
+            if (
+                typeof item !== "object" ||
+                !item.instruction ||
+                !item.rule
+            ) {
+
+                errors.push(
+                    `STATEMENTS[${index}] : format invalide`
+                );
+
+            }
+
+        }
+    );
+
+
+    /*
+     * CHOICE doit avoir une question
+     * et au moins deux choix.
+     */
+
+    QUESTIONS.CHOICE.forEach(
+        (item, index) => {
+
+            if (
+                !item.question ||
+                !Array.isArray(item.choices) ||
+                item.choices.length < 2
+            ) {
+
+                errors.push(
+                    `CHOICE[${index}] : format invalide`
+                );
+
+            }
+
+        }
+    );
+
+
+    /*
+     * HOT doit avoir texte + intensité.
+     */
+
+    QUESTIONS.HOT.forEach(
+        (item, index) => {
+
+            if (
+                !item.text ||
+                typeof item.intensity !== "number"
+            ) {
+
+                errors.push(
+                    `HOT[${index}] : format invalide`
+                );
+
+            }
+
+        }
+    );
+
+
+    /*
+     * Pools secrets.
+     */
+
+    [
+        "FORBIDDEN_WORD",
+        "TRAP_WORD"
+    ].forEach(
+        poolName => {
+
+            QUESTIONS[poolName].forEach(
+                (item, index) => {
+
+                    if (
+                        !item.word ||
+                        !Array.isArray(
+                            item.forbidden
+                        )
+                    ) {
+
+                        errors.push(
+                            `${poolName}[${index}] : format invalide`
+                        );
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+
+    return {
+
+        valid:
+            errors.length === 0,
+
+        errors
+
+    };
+
+}
