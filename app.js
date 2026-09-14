@@ -1065,6 +1065,66 @@ function renderIntro() {
     const game =
         session.currentGame;
 
+    const isSingleTargetGame =
+        game.phases &&
+        game.phases[1] === "SELECT_TARGET";
+
+    if (isSingleTargetGame) {
+
+        const target =
+            session.currentTargets[0];
+
+        app.innerHTML = `
+
+            <section class="game-screen">
+
+                <div class="game-header">
+
+                    <span>
+                        TOUR ${session.round}
+                    </span>
+
+                    <span>
+                        ${escapeHTML(game.family)}
+                    </span>
+
+                </div>
+
+                <div class="game-card">
+
+                    <div class="game-kicker">
+                        NOUVEAU DÉFI
+                    </div>
+
+                    <div class="private-label">
+                        C'EST AU TOUR DE
+                    </div>
+
+                    <h1>
+                        ${escapeHTML(target)}
+                    </h1>
+
+                    <p>
+                        ${escapeHTML(game.name)}
+                    </p>
+
+                </div>
+
+                <button
+                    class="primary-btn"
+                    onclick="beginMergedIntro()"
+                >
+                    COMMENCER
+                </button>
+
+            </section>
+
+        `;
+
+        return;
+
+    }
+
     app.innerHTML = `
 
         <section class="game-screen">
@@ -1109,6 +1169,45 @@ function renderIntro() {
         </section>
 
     `;
+
+}
+
+
+function beginMergedIntro() {
+
+    /*
+       Traverse réellement INTRO -> SELECT_TARGET -> phase suivante,
+       sans afficher l'écran SELECT_TARGET. Deux appels normaux à
+       nextGamePhase(), aucun contournement du moteur.
+    */
+
+    const afterTarget =
+        nextGamePhase();
+
+    if (afterTarget === null) {
+
+        session.screen = "HOME";
+
+        render();
+
+        return;
+
+    }
+
+    const afterSkip =
+        nextGamePhase();
+
+    if (afterSkip === null) {
+
+        session.screen = "HOME";
+
+        render();
+
+        return;
+
+    }
+
+    syncPhase();
 
 }
 
