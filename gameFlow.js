@@ -1,83 +1,183 @@
 /* ============================================================
    SOIRÉE — GAME FLOW ENGINE
-   BUILD 08.2
+   BUILD 08.4
+   ============================================================
+
+   NOUVELLE PHILOSOPHIE
+   --------------------
+
+   Un flow décrit une EXPERIENCE,
+   pas une succession artificielle d'écrans.
+
+   PRINCIPES :
+
+   SECRET
+   PASSAGE → SECRET/ACTION → RÉSOLUTION
+
+   VOTE
+   QUESTION → VOTE → RÉSOLUTION
+
+   RAPIDITÉ
+   DÉFI → RÉSOLUTION
+
+   GROUPE
+   QUESTION → ACTION → RÉSOLUTION
+
+   Une phase = une véritable action utilisateur.
    ============================================================ */
 
-/*
-  OBJECTIF
-  ---------
-  Moteur de flux centralisé.
-
-  Le moteur ne décide PAS des règles des jeux.
-  Il gère uniquement :
-  - la phase actuelle
-  - les joueurs
-  - les rôles
-  - les secrets
-  - les votes
-  - le gagnant / perdant
-  - les transitions
-*/
 
 /* ============================================================
-   CONSTANTES
+   TYPES DE JEUX
    ============================================================ */
 
 const GAME_TYPES = {
+
   INDIVIDUAL: "INDIVIDUAL",
+
   GROUP_VOTE: "GROUP_VOTE",
+
   SECRET_VOTE: "SECRET_VOTE",
+
   SECRET: "SECRET",
+
   RAPID: "RAPID",
+
   BLUFF: "BLUFF",
+
   GROUP: "GROUP"
-};
-
-const ACTOR_MODES = {
-  NONE: "NONE",
-  RANDOM: "RANDOM",
-  SELECTED: "SELECTED",
-  TARGET: "TARGET"
-};
-
-const TARGET_MODES = {
-  NONE: "NONE",
-  ONE: "ONE",
-  TWO: "TWO",
-  ALL: "ALL"
-};
-
-const VOTE_MODES = {
-  NONE: "NONE",
-  GROUP_CONFIRM: "GROUP_CONFIRM",
-  SECRET: "SECRET"
-};
-
-const PENALTIES = {
-  NONE: "NONE",
-  LOSER: "LOSER",
-  WINNER: "WINNER",
-  TARGET: "TARGET"
-};
-
-const FLOW_PHASES = {
-  INTRO: "INTRO",
-  ASSIGN: "ASSIGN",
-  SELECT_TARGET: "SELECT_TARGET",
-  SELECT_PLAYERS: "SELECT_PLAYERS",
-  PASS_PHONE: "PASS_PHONE",
-  SECRET_REVEAL: "SECRET_REVEAL",
-  RETURN_PHONE: "RETURN_PHONE",
-  PLAY: "PLAY",
-  VOTE: "VOTE",
-  RESOLVE: "RESOLVE",
-  PENALTY: "PENALTY",
-  NEXT: "NEXT"
 };
 
 
 /* ============================================================
-   ÉTAT GLOBAL DU MOTEUR
+   RÔLES
+   ============================================================ */
+
+const ACTOR_MODES = {
+
+  NONE: "NONE",
+
+  RANDOM: "RANDOM",
+
+  SELECTED: "SELECTED",
+
+  TARGET: "TARGET"
+};
+
+
+const TARGET_MODES = {
+
+  NONE: "NONE",
+
+  ONE: "ONE",
+
+  TWO: "TWO",
+
+  ALL: "ALL"
+};
+
+
+/* ============================================================
+   VOTES
+   ============================================================ */
+
+const VOTE_MODES = {
+
+  NONE: "NONE",
+
+  GROUP_CONFIRM: "GROUP_CONFIRM",
+
+  SECRET: "SECRET"
+};
+
+
+/* ============================================================
+   CONSÉQUENCES
+   ============================================================ */
+
+const PENALTIES = {
+
+  NONE: "NONE",
+
+  LOSER: "LOSER",
+
+  WINNER: "WINNER",
+
+  TARGET: "TARGET"
+};
+
+
+/* ============================================================
+   NOUVEAUX FLOWS
+   ============================================================ */
+
+const FLOW_PHASES = {
+
+  /*
+    Présentation extrêmement courte.
+    Elle n'est utilisée que lorsqu'elle apporte
+    réellement quelque chose.
+  */
+  INTRO: "INTRO",
+
+  /*
+    Choix manuel d'une personne.
+  */
+  SELECT_TARGET: "SELECT_TARGET",
+
+  /*
+    Choix de plusieurs personnes.
+  */
+  SELECT_PLAYERS: "SELECT_PLAYERS",
+
+  /*
+    Écran de passage du téléphone.
+  */
+  PASS_SECRET: "PASS_SECRET",
+
+  /*
+    Écran privé combinant :
+    - secret
+    - consigne
+    - action à effectuer
+
+    IMPORTANT :
+    SECRET_REVEAL et PLAY ont été fusionnés.
+  */
+  SECRET_ACTION: "SECRET_ACTION",
+
+  /*
+    Action publique.
+  */
+  ACTION: "ACTION",
+
+  /*
+    Vote.
+  */
+  VOTE: "VOTE",
+
+  /*
+    Résolution.
+    Le résultat réel est déterminé ici.
+  */
+  RESOLVE: "RESOLVE",
+
+  /*
+    Question de réussite / échec.
+    Exemple :
+    "Tu as réussi ? OUI / NON"
+  */
+  SUCCESS_CHECK: "SUCCESS_CHECK",
+
+  /*
+    Conséquence.
+  */
+  PENALTY: "PENALTY"
+};
+
+
+/* ============================================================
+   ÉTAT GLOBAL
    ============================================================ */
 
 const GAME_FLOW = {
@@ -108,67 +208,95 @@ const GAME_FLOW = {
 
   result: null,
 
+  success: null,
+
   startedAt: null,
 
-  phaseStartedAt: null,
-
-  history: []
+  phaseStartedAt: null
 };
 
 
 /* ============================================================
-   UTILITAIRES
+   RESET
    ============================================================ */
 
 function resetGameFlow() {
 
   GAME_FLOW.currentGame = null;
+
   GAME_FLOW.phase = null;
+
   GAME_FLOW.phaseIndex = 0;
 
   GAME_FLOW.actor = null;
+
   GAME_FLOW.target = null;
 
   GAME_FLOW.participants = [];
+
   GAME_FLOW.voters = [];
 
   GAME_FLOW.secretOwner = null;
+
   GAME_FLOW.secretContent = null;
 
   GAME_FLOW.winner = null;
+
   GAME_FLOW.loser = null;
 
   GAME_FLOW.votes = [];
+
   GAME_FLOW.result = null;
 
-  GAME_FLOW.startedAt = null;
-  GAME_FLOW.phaseStartedAt = null;
+  GAME_FLOW.success = null;
 
-  GAME_FLOW.history = [];
+  GAME_FLOW.startedAt = null;
+
+  GAME_FLOW.phaseStartedAt = null;
 }
 
+
+/* ============================================================
+   DÉMARRAGE
+   ============================================================ */
 
 function startGameFlow(game) {
 
   resetGameFlow();
 
+  if (!game) {
+    return null;
+  }
+
   GAME_FLOW.currentGame = game;
 
   GAME_FLOW.startedAt = Date.now();
 
-  if (!game || !Array.isArray(game.flow) || game.flow.length === 0) {
+  const flow =
+    Array.isArray(game.flow)
+      ? game.flow
+      : [];
+
+  if (!flow.length) {
+
     GAME_FLOW.phase = null;
+
     return null;
   }
 
   GAME_FLOW.phaseIndex = 0;
-  GAME_FLOW.phase = game.flow[0];
+
+  GAME_FLOW.phase = flow[0];
 
   GAME_FLOW.phaseStartedAt = Date.now();
 
   return GAME_FLOW.phase;
 }
 
+
+/* ============================================================
+   LECTURE
+   ============================================================ */
 
 function getCurrentGamePhase() {
 
@@ -188,8 +316,18 @@ function getGameFlow() {
 }
 
 
+function hasGamePhase(phase) {
+
+  return Boolean(
+    GAME_FLOW.currentGame &&
+    Array.isArray(GAME_FLOW.currentGame.flow) &&
+    GAME_FLOW.currentGame.flow.includes(phase)
+  );
+}
+
+
 /* ============================================================
-   TRANSITIONS
+   TRANSITION
    ============================================================ */
 
 function nextGamePhase() {
@@ -198,9 +336,11 @@ function nextGamePhase() {
     return null;
   }
 
-  const flow = GAME_FLOW.currentGame.flow || [];
+  const flow =
+    GAME_FLOW.currentGame.flow || [];
 
-  const nextIndex = GAME_FLOW.phaseIndex + 1;
+  const nextIndex =
+    GAME_FLOW.phaseIndex + 1;
 
   if (nextIndex >= flow.length) {
 
@@ -209,11 +349,14 @@ function nextGamePhase() {
     return null;
   }
 
-  GAME_FLOW.phaseIndex = nextIndex;
+  GAME_FLOW.phaseIndex =
+    nextIndex;
 
-  GAME_FLOW.phase = flow[nextIndex];
+  GAME_FLOW.phase =
+    flow[nextIndex];
 
-  GAME_FLOW.phaseStartedAt = Date.now();
+  GAME_FLOW.phaseStartedAt =
+    Date.now();
 
   return GAME_FLOW.phase;
 }
@@ -225,30 +368,24 @@ function goToGamePhase(phase) {
     return false;
   }
 
-  const flow = GAME_FLOW.currentGame.flow || [];
+  const flow =
+    GAME_FLOW.currentGame.flow || [];
 
-  const index = flow.indexOf(phase);
+  const index =
+    flow.indexOf(phase);
 
   if (index === -1) {
     return false;
   }
 
   GAME_FLOW.phaseIndex = index;
+
   GAME_FLOW.phase = phase;
-  GAME_FLOW.phaseStartedAt = Date.now();
+
+  GAME_FLOW.phaseStartedAt =
+    Date.now();
 
   return true;
-}
-
-
-function hasGamePhase(phase) {
-
-  if (!GAME_FLOW.currentGame) {
-    return false;
-  }
-
-  return Array.isArray(GAME_FLOW.currentGame.flow)
-    && GAME_FLOW.currentGame.flow.includes(phase);
 }
 
 
@@ -258,7 +395,8 @@ function hasGamePhase(phase) {
 
 function setGameActor(player) {
 
-  GAME_FLOW.actor = player || null;
+  GAME_FLOW.actor =
+    player || null;
 
   return GAME_FLOW.actor;
 }
@@ -266,7 +404,8 @@ function setGameActor(player) {
 
 function setGameTarget(player) {
 
-  GAME_FLOW.target = player || null;
+  GAME_FLOW.target =
+    player || null;
 
   return GAME_FLOW.target;
 }
@@ -274,9 +413,10 @@ function setGameTarget(player) {
 
 function setParticipants(players) {
 
-  GAME_FLOW.participants = Array.isArray(players)
-    ? [...players]
-    : [];
+  GAME_FLOW.participants =
+    Array.isArray(players)
+      ? [...players]
+      : [];
 
   return GAME_FLOW.participants;
 }
@@ -284,17 +424,23 @@ function setParticipants(players) {
 
 function setVoters(players) {
 
-  GAME_FLOW.voters = Array.isArray(players)
-    ? [...players]
-    : [];
+  GAME_FLOW.voters =
+    Array.isArray(players)
+      ? [...players]
+      : [];
 
   return GAME_FLOW.voters;
 }
 
 
+/* ============================================================
+   SECRET
+   ============================================================ */
+
 function setSecretOwner(player) {
 
-  GAME_FLOW.secretOwner = player || null;
+  GAME_FLOW.secretOwner =
+    player || null;
 
   return GAME_FLOW.secretOwner;
 }
@@ -302,7 +448,8 @@ function setSecretOwner(player) {
 
 function setSecretContent(content) {
 
-  GAME_FLOW.secretContent = content ?? null;
+  GAME_FLOW.secretContent =
+    content ?? null;
 
   return GAME_FLOW.secretContent;
 }
@@ -314,7 +461,8 @@ function setSecretContent(content) {
 
 function setGameWinner(player) {
 
-  GAME_FLOW.winner = player || null;
+  GAME_FLOW.winner =
+    player || null;
 
   return GAME_FLOW.winner;
 }
@@ -322,7 +470,8 @@ function setGameWinner(player) {
 
 function setGameLoser(player) {
 
-  GAME_FLOW.loser = player || null;
+  GAME_FLOW.loser =
+    player || null;
 
   return GAME_FLOW.loser;
 }
@@ -330,9 +479,19 @@ function setGameLoser(player) {
 
 function setGameResult(result) {
 
-  GAME_FLOW.result = result ?? null;
+  GAME_FLOW.result =
+    result ?? null;
 
   return GAME_FLOW.result;
+}
+
+
+function setGameSuccess(value) {
+
+  GAME_FLOW.success =
+    Boolean(value);
+
+  return GAME_FLOW.success;
 }
 
 
@@ -355,9 +514,13 @@ function addGameVote(voter, choice) {
   }
 
   GAME_FLOW.votes.push({
+
     voter,
+
     choice,
+
     timestamp: Date.now()
+
   });
 
   return true;
@@ -385,7 +548,7 @@ function hasVoted(player) {
 
 
 /* ============================================================
-   COMPTAGE DES VOTES
+   COMPTAGE
    ============================================================ */
 
 function countGameVotes() {
@@ -394,13 +557,12 @@ function countGameVotes() {
 
   GAME_FLOW.votes.forEach(vote => {
 
-    const choice = vote.choice;
+    if (!counts[vote.choice]) {
 
-    if (!counts[choice]) {
-      counts[choice] = 0;
+      counts[vote.choice] = 0;
     }
 
-    counts[choice]++;
+    counts[vote.choice]++;
   });
 
   return counts;
@@ -409,19 +571,45 @@ function countGameVotes() {
 
 function getVoteWinner() {
 
-  const counts = countGameVotes();
+  const counts =
+    countGameVotes();
 
-  const entries = Object.entries(counts);
+  const entries =
+    Object.entries(counts);
 
   if (!entries.length) {
     return null;
   }
 
-  entries.sort((a, b) => b[1] - a[1]);
+  const highest =
+    Math.max(
+      ...entries.map(
+        entry => entry[1]
+      )
+    );
+
+  /*
+    Plusieurs personnes peuvent être
+    à égalité.
+  */
+
+  const winners =
+    entries
+      .filter(
+        entry => entry[1] === highest
+      )
+      .map(
+        entry => entry[0]
+      );
 
   return {
-    player: entries[0][0],
-    votes: entries[0][1]
+
+    players: winners,
+
+    votes: highest,
+
+    counts
+
   };
 }
 
@@ -432,71 +620,159 @@ function getVoteWinner() {
 
 function resolveGame() {
 
-  const game = GAME_FLOW.currentGame;
+  const game =
+    GAME_FLOW.currentGame;
 
   if (!game) {
     return null;
   }
 
-  /*
-    VOTE COLLECTIF
-    --------------
-    Le résultat vient réellement du vote.
-  */
+
+  /* ----------------------------------------------------------
+     VOTE
+     ---------------------------------------------------------- */
 
   if (
     game.voteMode === VOTE_MODES.GROUP_CONFIRM ||
     game.voteMode === VOTE_MODES.SECRET
   ) {
 
-    const winner = getVoteWinner();
+    const voteResult =
+      getVoteWinner();
 
-    if (winner) {
-
-      setGameWinner(winner.player);
+    if (voteResult) {
 
       /*
-        Dans un jeu de type "Qui pourrait ?",
-        la personne la plus votée est généralement
-        la cible / perdante.
+        En cas d'égalité, le jeu ne prétend pas
+        qu'une personne a gagné seule.
       */
 
-      setGameLoser(winner.player);
+      if (
+        voteResult.players.length === 1
+      ) {
 
-      setGameResult({
-        type: "VOTE",
-        winner: winner.player,
-        votes: winner.votes,
-        counts: countGameVotes()
-      });
+        const player =
+          voteResult.players[0];
+
+        setGameLoser(player);
+
+        setGameResult({
+
+          type: "VOTE",
+
+          loser: player,
+
+          votes: voteResult.votes,
+
+          counts: voteResult.counts
+
+        });
+
+      } else {
+
+        setGameResult({
+
+          type: "VOTE_TIE",
+
+          players:
+            voteResult.players,
+
+          votes:
+            voteResult.votes,
+
+          counts:
+            voteResult.counts
+
+        });
+      }
 
       return GAME_FLOW.result;
     }
   }
 
-  /*
-    Si le jeu possède déjà une cible explicite,
-    elle peut devenir le résultat.
-  */
 
-  if (GAME_FLOW.target) {
+  /* ----------------------------------------------------------
+     RÉUSSITE / ÉCHEC
+     ---------------------------------------------------------- */
 
-    setGameLoser(GAME_FLOW.target);
+  if (
+    GAME_FLOW.success !== null
+  ) {
+
+    const player =
+      GAME_FLOW.actor ||
+      GAME_FLOW.target;
+
+    if (GAME_FLOW.success) {
+
+      setGameWinner(player);
+
+    } else {
+
+      setGameLoser(player);
+    }
 
     setGameResult({
-      type: "TARGET",
-      target: GAME_FLOW.target
+
+      type: "SUCCESS_CHECK",
+
+      success:
+        GAME_FLOW.success,
+
+      player
+
     });
 
     return GAME_FLOW.result;
   }
 
-  /*
-    Aucun résultat automatique.
-  */
+
+  /* ----------------------------------------------------------
+     CIBLE
+     ---------------------------------------------------------- */
+
+  if (GAME_FLOW.target) {
+
+    setGameResult({
+
+      type: "TARGET",
+
+      target:
+        GAME_FLOW.target
+
+    });
+
+    return GAME_FLOW.result;
+  }
+
+
+  /* ----------------------------------------------------------
+     ACTION INDIVIDUELLE
+     ---------------------------------------------------------- */
+
+  if (GAME_FLOW.actor) {
+
+    setGameResult({
+
+      type: "ACTOR",
+
+      actor:
+        GAME_FLOW.actor
+
+    });
+
+    return GAME_FLOW.result;
+  }
+
+
+  /* ----------------------------------------------------------
+     GROUPE
+     ---------------------------------------------------------- */
 
   setGameResult({
-    type: "NONE"
+
+    type: "GROUP"
+
   });
 
   return GAME_FLOW.result;
@@ -504,7 +780,22 @@ function resolveGame() {
 
 
 /* ============================================================
-   VALIDATION D'UN JEU
+   PHASE PRIVÉE
+   ============================================================ */
+
+function isPrivatePhase(
+  phase = GAME_FLOW.phase
+) {
+
+  return (
+    phase === FLOW_PHASES.PASS_SECRET ||
+    phase === FLOW_PHASES.SECRET_ACTION
+  );
+}
+
+
+/* ============================================================
+   VALIDATION
    ============================================================ */
 
 function validateGameDefinition(game) {
@@ -512,161 +803,280 @@ function validateGameDefinition(game) {
   const errors = [];
 
   if (!game) {
-    errors.push("Jeu inexistant.");
+
+    errors.push(
+      "Jeu inexistant."
+    );
+
     return errors;
   }
 
+
   if (!game.id) {
-    errors.push("ID manquant.");
+
+    errors.push(
+      "ID manquant."
+    );
   }
+
 
   if (!game.name) {
-    errors.push("Nom manquant.");
+
+    errors.push(
+      "Nom manquant."
+    );
   }
+
 
   if (!game.type) {
-    errors.push("Type de jeu manquant.");
-  }
 
-  if (!Array.isArray(game.flow) || !game.flow.length) {
-    errors.push("Flow manquant.");
-  }
-
-  /*
-    TARGET NONE
-    */
-
-  if (
-    game.target === TARGET_MODES.NONE &&
-    game.flow?.includes(FLOW_PHASES.SELECT_TARGET)
-  ) {
     errors.push(
-      "Le jeu demande une cible alors que target = NONE."
+      "Type de jeu manquant."
     );
   }
 
-  /*
-    VOTE
-    */
 
   if (
-    game.flow?.includes(FLOW_PHASES.VOTE) &&
-    game.voteMode === VOTE_MODES.NONE
+    !Array.isArray(game.flow) ||
+    !game.flow.length
   ) {
+
     errors.push(
-      "Phase VOTE présente sans système de vote."
+      "Flow manquant."
     );
   }
 
-  /*
-    SECRET
-    */
+
+  /* ----------------------------------------------------------
+     SECRET
+     ---------------------------------------------------------- */
 
   if (game.phone === true) {
 
     if (
-      !game.flow?.includes(FLOW_PHASES.SECRET_REVEAL)
+      !game.flow?.includes(
+        FLOW_PHASES.PASS_SECRET
+      )
     ) {
+
       errors.push(
-        "Jeu avec téléphone mais sans SECRET_REVEAL."
+        "Jeu téléphone sans PASS_SECRET."
       );
     }
+
 
     if (
-      !game.flow?.includes(FLOW_PHASES.PASS_PHONE)
+      !game.flow?.includes(
+        FLOW_PHASES.SECRET_ACTION
+      )
     ) {
+
       errors.push(
-        "Jeu avec téléphone mais sans PASS_PHONE."
+        "Jeu téléphone sans SECRET_ACTION."
       );
     }
   }
 
-  /*
-    PÉNALITÉ
-    */
+
+  /* ----------------------------------------------------------
+     VOTE
+     ---------------------------------------------------------- */
 
   if (
-    game.penalty &&
-    game.penalty !== PENALTIES.NONE &&
-    game.penalty !== PENALTIES.WINNER &&
-    game.penalty !== PENALTIES.LOSER &&
-    game.penalty !== PENALTIES.TARGET
+    game.flow?.includes(
+      FLOW_PHASES.VOTE
+    )
   ) {
-    errors.push("Type de pénalité invalide.");
+
+    if (
+      game.voteMode ===
+      VOTE_MODES.NONE
+    ) {
+
+      errors.push(
+        "Phase VOTE sans système de vote."
+      );
+    }
   }
 
-  /*
-    SECRET_OWNER
-    */
+
+  /* ----------------------------------------------------------
+     PENALTY
+     ---------------------------------------------------------- */
+
+  if (
+    game.flow?.includes(
+      FLOW_PHASES.PENALTY
+    )
+  ) {
+
+    if (
+      !game.penalty ||
+      game.penalty ===
+      PENALTIES.NONE
+    ) {
+
+      errors.push(
+        "Phase PENALTY sans pénalité."
+      );
+    }
+  }
+
+
+  /* ----------------------------------------------------------
+     SECRET = PAS D'INTRO PUBLIQUE INUTILE
+     ---------------------------------------------------------- */
 
   if (
     game.type === GAME_TYPES.SECRET &&
-    game.target === TARGET_MODES.NONE
+    game.phone === true &&
+    game.flow?.includes(
+      FLOW_PHASES.INTRO
+    )
   ) {
+
     errors.push(
-      "Un jeu SECRET doit définir son propriétaire du secret."
+      "Un jeu secret ne doit pas avoir une INTRO séparée inutile."
     );
   }
+
+
+  /* ----------------------------------------------------------
+     ANCIENNES PHASES INTERDITES
+     ---------------------------------------------------------- */
+
+  if (
+    game.flow?.includes(
+      "RETURN_PHONE"
+    )
+  ) {
+
+    errors.push(
+      "RETURN_PHONE est supprimé."
+    );
+  }
+
+
+  if (
+    game.flow?.includes(
+      "SECRET_REVEAL"
+    )
+  ) {
+
+    errors.push(
+      "SECRET_REVEAL est supprimé : utiliser SECRET_ACTION."
+    );
+  }
+
+
+  if (
+    game.flow?.includes(
+      "PLAY"
+    )
+  ) {
+
+    errors.push(
+      "PLAY est supprimé : utiliser ACTION ou SECRET_ACTION."
+    );
+  }
+
+
+  if (
+    game.flow?.includes(
+      "RESULT"
+    )
+  ) {
+
+    errors.push(
+      "RESULT est supprimé : utiliser RESOLVE."
+    );
+  }
+
+
+  if (
+    game.flow?.includes(
+      "NEXT"
+    )
+  ) {
+
+    errors.push(
+      "NEXT est supprimé : transition automatique."
+    );
+  }
+
 
   return errors;
 }
 
 
 /* ============================================================
-   VALIDATION DE TOUS LES JEUX
+   VALIDATION DE LA BASE
    ============================================================ */
 
 function validateAllGames(games) {
 
   if (!Array.isArray(games)) {
+
     return [{
-      game: null,
-      errors: ["Liste des jeux invalide."]
+
+      game: "DATABASE",
+
+      errors: [
+        "Liste des jeux invalide."
+      ]
+
     }];
   }
 
+
   return games
+
     .map(game => ({
-      game: game.id || game.name,
-      errors: validateGameDefinition(game)
+
+      game:
+        game.id ||
+        game.name,
+
+      errors:
+        validateGameDefinition(game)
+
     }))
-    .filter(item => item.errors.length > 0);
+
+    .filter(
+      item =>
+        item.errors.length > 0
+    );
 }
 
 
 /* ============================================================
-   PHASE PRIVÉE
-   ============================================================ */
-
-function isPrivatePhase(phase = GAME_FLOW.phase) {
-
-  return (
-    phase === FLOW_PHASES.PASS_PHONE ||
-    phase === FLOW_PHASES.SECRET_REVEAL ||
-    phase === FLOW_PHASES.RETURN_PHONE
-  );
-}
-
-
-/* ============================================================
-   RESET APRÈS LE TOUR
+   NETTOYAGE
    ============================================================ */
 
 function clearGameResult() {
 
   GAME_FLOW.winner = null;
+
   GAME_FLOW.loser = null;
+
   GAME_FLOW.result = null;
+
+  GAME_FLOW.success = null;
 }
 
 
 function clearGameRoles() {
 
   GAME_FLOW.actor = null;
+
   GAME_FLOW.target = null;
+
   GAME_FLOW.participants = [];
+
   GAME_FLOW.voters = [];
+
   GAME_FLOW.secretOwner = null;
+
   GAME_FLOW.secretContent = null;
 }
 
@@ -678,16 +1088,43 @@ function clearGameRoles() {
 function debugGameFlow() {
 
   return {
-    game: GAME_FLOW.currentGame?.id || null,
-    phase: GAME_FLOW.phase,
-    phaseIndex: GAME_FLOW.phaseIndex,
-    actor: GAME_FLOW.actor,
-    target: GAME_FLOW.target,
-    participants: GAME_FLOW.participants,
-    secretOwner: GAME_FLOW.secretOwner,
-    winner: GAME_FLOW.winner,
-    loser: GAME_FLOW.loser,
-    votes: GAME_FLOW.votes,
-    result: GAME_FLOW.result
+
+    game:
+      GAME_FLOW.currentGame?.id ||
+      null,
+
+    phase:
+      GAME_FLOW.phase,
+
+    phaseIndex:
+      GAME_FLOW.phaseIndex,
+
+    actor:
+      GAME_FLOW.actor,
+
+    target:
+      GAME_FLOW.target,
+
+    participants:
+      GAME_FLOW.participants,
+
+    secretOwner:
+      GAME_FLOW.secretOwner,
+
+    winner:
+      GAME_FLOW.winner,
+
+    loser:
+      GAME_FLOW.loser,
+
+    success:
+      GAME_FLOW.success,
+
+    votes:
+      GAME_FLOW.votes,
+
+    result:
+      GAME_FLOW.result
+
   };
 }
