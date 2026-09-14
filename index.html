@@ -32,13 +32,10 @@
 
   <title>SOIRÉE — Party Game</title>
 
-  <!--
-    CACHE BUSTING
-    BUILD 08.2
-  -->
+  <!-- BUILD 08.3 -->
   <link
     rel="stylesheet"
-    href="style.css?v=8.2"
+    href="style.css?v=8.3"
   >
 
 </head>
@@ -46,44 +43,37 @@
 
 <body>
 
-  <!--
-    Conteneur principal de l'application.
-    Toute l'interface est générée par app.js.
-  -->
   <main
     id="app"
     aria-live="polite"
   ></main>
 
 
-  <!--
-    ORDRE IMPORTANT DES SCRIPTS
+  <!-- ========================================================
+       ORDRE DE CHARGEMENT IMPORTANT
+       ========================================================
 
-    1. config.js
-       Configuration générale
-
-    2. questions.js
-       Banque de contenus
-
-    3. games.js
-       Définition des 23 jeux
-
-    4. gameFlow.js
-       Moteur des phases, rôles, votes et résultats
-
-    5. app.js
-       Interface et logique applicative
+       1. config
+       2. questions
+       3. gameFlow
+          → définit GAME_TYPES, FLOW_PHASES, etc.
+       4. games
+          → utilise les constantes du gameFlow
+       5. app
+          → utilise absolument tout le système
   -->
 
-  <script src="config.js?v=8.2"></script>
 
-  <script src="questions.js?v=8.2"></script>
+  <script src="config.js?v=8.3"></script>
 
-  <script src="games.js?v=8.2"></script>
+  <script src="questions.js?v=8.3"></script>
 
-  <script src="gameFlow.js?v=8.2"></script>
+  <script src="gameFlow.js?v=8.3"></script>
 
-  <script src="app.js?v=8.2"></script>
+  <script src="games.js?v=8.3"></script>
+
+  <script src="app.js?v=8.3"></script>
+
 
 </body>
 
