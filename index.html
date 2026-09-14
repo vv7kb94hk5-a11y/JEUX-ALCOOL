@@ -3,69 +3,87 @@
 
 <head>
 
-    <meta charset="UTF-8">
+  <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
-    >
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+  >
 
-    <meta
-        name="theme-color"
-        content="#09090D"
-    >
+  <meta
+    name="theme-color"
+    content="#09090D"
+  >
 
-    <meta
-        name="apple-mobile-web-app-capable"
-        content="yes"
-    >
+  <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  >
 
-    <meta
-        name="apple-mobile-web-app-status-bar-style"
-        content="black-translucent"
-    >
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="black-translucent"
+  >
 
-    <title>SOIRÉE — Party Game</title>
+  <meta
+    name="mobile-web-app-capable"
+    content="yes"
+  >
 
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
+  <title>SOIRÉE — Party Game</title>
+
+  <!--
+    CACHE BUSTING
+    BUILD 08.2
+  -->
+  <link
+    rel="stylesheet"
+    href="style.css?v=8.2"
+  >
 
 </head>
 
 
 <body>
 
-    <main
-        id="app"
-        aria-live="polite"
-    ></main>
+  <!--
+    Conteneur principal de l'application.
+    Toute l'interface est générée par app.js.
+  -->
+  <main
+    id="app"
+    aria-live="polite"
+  ></main>
 
 
-    <!--
-        ORDRE DE CHARGEMENT IMPORTANT
+  <!--
+    ORDRE IMPORTANT DES SCRIPTS
 
-        CONFIG
-        ↓
-        QUESTIONS
-        ↓
-        GAMES
-        ↓
-        GAME FLOW
-        ↓
-        APP
-    -->
+    1. config.js
+       Configuration générale
 
-    <script src="config.js"></script>
+    2. questions.js
+       Banque de contenus
 
-    <script src="questions.js"></script>
+    3. games.js
+       Définition des 23 jeux
 
-    <script src="games.js"></script>
+    4. gameFlow.js
+       Moteur des phases, rôles, votes et résultats
 
-    <script src="gameFlow.js"></script>
+    5. app.js
+       Interface et logique applicative
+  -->
 
-    <script src="app.js"></script>
+  <script src="config.js?v=8.2"></script>
+
+  <script src="questions.js?v=8.2"></script>
+
+  <script src="games.js?v=8.2"></script>
+
+  <script src="gameFlow.js?v=8.2"></script>
+
+  <script src="app.js?v=8.2"></script>
 
 </body>
 
