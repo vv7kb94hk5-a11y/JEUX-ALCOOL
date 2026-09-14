@@ -1,7 +1,6 @@
 /* ============================================================
-   SOIRÉE — QUESTION DATABASE
-   BUILD 04.0
-   CONTENU COMPLET
+   SOIRÉE — CONTENT DATABASE
+   BUILD 07.0
    ============================================================ */
 
 const QUESTIONS = {
@@ -13,46 +12,25 @@ const QUESTIONS = {
 
     VOTE: [
 
-        {
-            id: "V001",
-            text: "Qui pourrait disparaître pendant une soirée sans prévenir personne ?"
-        },
-        {
-            id: "V002",
-            text: "Qui pourrait finir célèbre sans que personne ne sache vraiment pourquoi ?"
-        },
-        {
-            id: "V003",
-            text: "Qui pourrait envoyer un message à la mauvaise personne ?"
-        },
-        {
-            id: "V004",
-            text: "Qui pourrait survivre le plus longtemps sur une île déserte ?"
-        },
-        {
-            id: "V005",
-            text: "Qui pourrait tomber amoureux le plus rapidement ?"
-        },
-        {
-            id: "V006",
-            text: "Qui pourrait mentir avec le plus d'assurance ?"
-        },
-        {
-            id: "V007",
-            text: "Qui pourrait devenir riche en premier ?"
-        },
-        {
-            id: "V008",
-            text: "Qui pourrait faire la plus grosse connerie ce soir ?"
-        },
-        {
-            id: "V009",
-            text: "Qui pourrait être le meilleur espion ?"
-        },
-        {
-            id: "V010",
-            text: "Qui pourrait partir vivre à l'autre bout du monde sur un coup de tête ?"
-        }
+        "Qui pourrait disparaître pendant une soirée sans prévenir personne ?",
+
+        "Qui pourrait finir célèbre sans que personne ne sache vraiment pourquoi ?",
+
+        "Qui pourrait envoyer un message à la mauvaise personne ?",
+
+        "Qui pourrait survivre le plus longtemps sur une île déserte ?",
+
+        "Qui pourrait tomber amoureux le plus rapidement ?",
+
+        "Qui pourrait mentir avec le plus d'assurance ?",
+
+        "Qui pourrait devenir riche en premier ?",
+
+        "Qui pourrait faire la plus grosse connerie ce soir ?",
+
+        "Qui pourrait être le meilleur espion ?",
+
+        "Qui pourrait partir vivre à l'autre bout du monde sur un coup de tête ?"
 
     ],
 
@@ -61,40 +39,19 @@ const QUESTIONS = {
        MAJORITÉ
        ======================================================== */
 
-    MAJORITE: [
+    MAJORITY: [
 
-        {
-            id: "M001",
-            text: "Qui est le plus susceptible de répondre immédiatement à un message ?"
-        },
-        {
-            id: "M002",
-            text: "Qui est le plus susceptible d'arriver en retard ?"
-        },
-        {
-            id: "M003",
-            text: "Qui est le plus susceptible de garder un secret ?"
-        },
-        {
-            id: "M004",
-            text: "Qui est le plus susceptible de mentir pour éviter une soirée ?"
-        },
-        {
-            id: "M005",
-            text: "Qui est le plus susceptible de faire rire tout le monde ?"
-        },
-        {
-            id: "M006",
-            text: "Qui est le plus susceptible de se faire remarquer partout où il va ?"
-        },
-        {
-            id: "M007",
-            text: "Qui est le plus susceptible de prendre une décision complètement imprévisible ?"
-        },
-        {
-            id: "M008",
-            text: "Qui est le plus susceptible de convaincre tout le monde qu'il a raison ?"
-        }
+        "Qui est le plus susceptible d'arriver en retard ?",
+
+        "Qui est le plus susceptible de répondre immédiatement à un message ?",
+
+        "Qui est le plus susceptible de garder un secret ?",
+
+        "Qui est le plus susceptible de faire rire tout le monde ?",
+
+        "Qui est le plus susceptible de prendre une décision complètement imprévisible ?",
+
+        "Qui est le plus susceptible de convaincre tout le monde qu'il a raison ?"
 
     ],
 
@@ -103,32 +60,19 @@ const QUESTIONS = {
        CIBLE
        ======================================================== */
 
-    CIBLE: [
+    TARGET: [
 
-        {
-            id: "C001",
-            text: "Désignez quelqu'un qui semble toujours avoir une excuse."
-        },
-        {
-            id: "C002",
-            text: "Désignez quelqu'un à qui vous ne confieriez jamais votre téléphone déverrouillé."
-        },
-        {
-            id: "C003",
-            text: "Désignez quelqu'un qui pourrait être un excellent acteur."
-        },
-        {
-            id: "C004",
-            text: "Désignez quelqu'un qui pourrait vous trahir dans un jeu de bluff."
-        },
-        {
-            id: "C005",
-            text: "Désignez quelqu'un qui semble cacher quelque chose."
-        },
-        {
-            id: "C006",
-            text: "Désignez quelqu'un qui serait capable de vous convaincre de faire n'importe quoi."
-        }
+        "Désignez quelqu'un qui semble toujours avoir une excuse.",
+
+        "Désignez quelqu'un à qui vous ne confieriez jamais votre téléphone déverrouillé.",
+
+        "Désignez quelqu'un qui pourrait être un excellent acteur.",
+
+        "Désignez quelqu'un qui pourrait vous trahir dans un jeu de bluff.",
+
+        "Désignez quelqu'un qui semble cacher quelque chose.",
+
+        "Désignez quelqu'un qui pourrait vous convaincre de faire n'importe quoi."
 
     ],
 
@@ -137,28 +81,15 @@ const QUESTIONS = {
        CONNAISSANCE
        ======================================================== */
 
-    CONNAISSANCE: [
+    KNOWLEDGE: [
 
-        {
-            id: "K001",
-            text: "Qui connaît le mieux les habitudes de la personne à sa gauche ?"
-        },
-        {
-            id: "K002",
-            text: "Qui connaît le mieux les goûts de la personne en face de lui ?"
-        },
-        {
-            id: "K003",
-            text: "Qui saurait deviner le choix de chacun dans cette pièce ?"
-        },
-        {
-            id: "K004",
-            text: "Qui connaît le mieux le groupe depuis le début de la soirée ?"
-        },
-        {
-            id: "K005",
-            text: "Qui saurait le mieux décrire la personnalité de chaque joueur ?"
-        }
+        "Qui connaît le mieux les habitudes de la personne à sa gauche ?",
+
+        "Qui connaît le mieux les goûts de la personne en face de lui ?",
+
+        "Qui saurait deviner le choix de chacun dans cette pièce ?",
+
+        "Qui connaît le mieux le groupe depuis le début de la soirée ?"
 
     ],
 
@@ -169,26 +100,15 @@ const QUESTIONS = {
 
     SUSPECT: [
 
-        {
-            id: "S001",
-            text: "Qui semble le plus susceptible de mentir maintenant ?"
-        },
-        {
-            id: "S002",
-            text: "Qui cache probablement quelque chose au groupe ?"
-        },
-        {
-            id: "S003",
-            text: "Qui serait le plus difficile à lire pendant un interrogatoire ?"
-        },
-        {
-            id: "S004",
-            text: "Qui pourrait réussir à bluffer tout le monde ?"
-        },
-        {
-            id: "S005",
-            text: "Qui a le comportement le plus suspect depuis le début de la partie ?"
-        }
+        "Qui semble le plus susceptible de mentir maintenant ?",
+
+        "Qui cache probablement quelque chose au groupe ?",
+
+        "Qui serait le plus difficile à lire pendant un interrogatoire ?",
+
+        "Qui pourrait réussir à bluffer tout le monde ?",
+
+        "Qui a le comportement le plus suspect depuis le début de la partie ?"
 
     ],
 
@@ -199,54 +119,29 @@ const QUESTIONS = {
 
     CATEGORY: [
 
-        {
-            id: "CA001",
-            category: "Marques de voitures"
-        },
-        {
-            id: "CA002",
-            category: "Villes françaises"
-        },
-        {
-            id: "CA003",
-            category: "Pays"
-        },
-        {
-            id: "CA004",
-            category: "Films"
-        },
-        {
-            id: "CA005",
-            category: "Séries"
-        },
-        {
-            id: "CA006",
-            category: "Plats"
-        },
-        {
-            id: "CA007",
-            category: "Métiers"
-        },
-        {
-            id: "CA008",
-            category: "Animaux"
-        },
-        {
-            id: "CA009",
-            category: "Objets que l'on trouve dans une maison"
-        },
-        {
-            id: "CA010",
-            category: "Célébrités"
-        },
-        {
-            id: "CA011",
-            category: "Sports"
-        },
-        {
-            id: "CA012",
-            category: "Applications"
-        }
+        "Marques de voitures",
+
+        "Villes françaises",
+
+        "Pays",
+
+        "Films",
+
+        "Séries",
+
+        "Plats",
+
+        "Métiers",
+
+        "Animaux",
+
+        "Objets dans une maison",
+
+        "Célébrités",
+
+        "Sports",
+
+        "Applications"
 
     ],
 
@@ -257,91 +152,65 @@ const QUESTIONS = {
 
     WORD: [
 
-        {
-            id: "W001",
-            word: "Plage"
-        },
-        {
-            id: "W002",
-            word: "Avion"
-        },
-        {
-            id: "W003",
-            word: "Téléphone"
-        },
-        {
-            id: "W004",
-            word: "Pizza"
-        },
-        {
-            id: "W005",
-            word: "Voiture"
-        },
-        {
-            id: "W006",
-            word: "Fantôme"
-        },
-        {
-            id: "W007",
-            word: "Mariage"
-        },
-        {
-            id: "W008",
-            word: "Prison"
-        },
-        {
-            id: "W009",
-            word: "Argent"
-        },
-        {
-            id: "W010",
-            word: "Vacances"
-        },
-        {
-            id: "W011",
-            word: "École"
-        },
-        {
-            id: "W012",
-            word: "Anniversaire"
-        }
+        "Plage",
+
+        "Avion",
+
+        "Téléphone",
+
+        "Pizza",
+
+        "Voiture",
+
+        "Fantôme",
+
+        "Mariage",
+
+        "Prison",
+
+        "Argent",
+
+        "Vacances",
+
+        "École",
+
+        "Anniversaire"
 
     ],
 
 
     /* ========================================================
-       MOTS INTERDITS
+       MOT INTERDIT
        ======================================================== */
 
     FORBIDDEN_WORD: [
 
         {
-            id: "F001",
             word: "oui",
             forbidden: ["ouais", "yes"]
         },
+
         {
-            id: "F002",
             word: "non",
             forbidden: ["nan", "no"]
         },
+
         {
-            id: "F003",
             word: "soirée",
             forbidden: ["fête"]
         },
+
         {
-            id: "F004",
             word: "boire",
             forbidden: ["alcool"]
         },
+
         {
-            id: "F005",
             word: "moi",
             forbidden: ["je"]
         },
+
         {
-            id: "F006",
             word: "toi",
             forbidden: ["tu"]
         }
@@ -355,30 +224,15 @@ const QUESTIONS = {
 
     BLUFF: [
 
-        {
-            id: "B001",
-            prompt: "Raconte une anecdote improbable. Le groupe doit décider si elle est vraie."
-        },
-        {
-            id: "B002",
-            prompt: "Affirme quelque chose sur toi que personne ici ne peut facilement vérifier."
-        },
-        {
-            id: "B003",
-            prompt: "Raconte une histoire vraie en ajoutant un détail complètement faux."
-        },
-        {
-            id: "B004",
-            prompt: "Invente une rencontre célèbre et raconte-la avec suffisamment de conviction pour être cru."
-        },
-        {
-            id: "B005",
-            prompt: "Donne une affirmation surprenante sur toi. Le groupe doit voter : vrai ou faux ?"
-        },
-        {
-            id: "B006",
-            prompt: "Raconte ton pire mensonge raconté à quelqu'un."
-        }
+        "Raconte une anecdote improbable. Le groupe doit décider si elle est vraie.",
+
+        "Affirme quelque chose sur toi que personne ici ne peut facilement vérifier.",
+
+        "Raconte une histoire vraie en ajoutant un détail complètement faux.",
+
+        "Invente une rencontre célèbre et raconte-la avec suffisamment de conviction pour être cru.",
+
+        "Donne une affirmation surprenante sur toi. Le groupe vote : vrai ou faux ?"
 
     ],
 
@@ -389,79 +243,52 @@ const QUESTIONS = {
 
     STATEMENTS: [
 
-        {
-            id: "ST001",
-            instruction: "Donne trois affirmations sur toi : deux vraies et une fausse."
-        },
-        {
-            id: "ST002",
-            instruction: "Donne trois anecdotes : deux vraies et une inventée."
-        },
-        {
-            id: "ST003",
-            instruction: "Donne trois choses que tu as déjà faites : deux vraies et une fausse."
-        },
-        {
-            id: "ST004",
-            instruction: "Donne trois choses que tu aimerais faire : deux vraies et une fausse."
-        }
+        "Donne trois affirmations sur toi : deux vraies et une fausse.",
+
+        "Donne trois anecdotes : deux vraies et une inventée.",
+
+        "Donne trois choses que tu as déjà faites : deux vraies et une fausse."
 
     ],
 
 
     /* ========================================================
-       QUESTIONS HOT
+       QUESTIONS CHAUDES
        ======================================================== */
 
     HOT: [
 
         {
-            id: "H001",
-            intensity: 2,
-            text: "Quelle est la personne de cette pièce que tu connaissais le moins avant ce soir ?"
-        },
-        {
-            id: "H002",
             intensity: 2,
             text: "Quelle est ta plus grosse honte en soirée ?"
         },
+
         {
-            id: "H003",
             intensity: 2,
             text: "Quelle est la chose la plus gênante que tu aies envoyée par message ?"
         },
+
         {
-            id: "H004",
             intensity: 2,
             text: "Quelle est la dernière fois où tu as menti pour éviter quelqu'un ?"
         },
+
         {
-            id: "H005",
             intensity: 3,
             text: "Qui dans cette pièce pourrait le plus facilement te faire craquer ?"
         },
+
         {
-            id: "H006",
-            intensity: 3,
-            text: "Quelle est la décision la plus impulsive que tu aies prise pour quelqu'un ?"
-        },
-        {
-            id: "H007",
-            intensity: 3,
-            text: "As-tu déjà regretté d'avoir embrassé quelqu'un ?"
-        },
-        {
-            id: "H008",
             intensity: 3,
             text: "Quel est ton plus gros red flag ?"
         },
+
         {
-            id: "H009",
             intensity: 3,
             text: "Quelle est la chose la plus folle que tu aies faite par attirance pour quelqu'un ?"
         },
+
         {
-            id: "H010",
             intensity: 3,
             text: "Quel est le pire mensonge que tu aies raconté à quelqu'un que tu aimais ?"
         }
@@ -475,38 +302,17 @@ const QUESTIONS = {
 
     CHOICE: [
 
-        {
-            id: "CH001",
-            text: "Préférerais-tu pouvoir lire les pensées ou voir le futur ?"
-        },
-        {
-            id: "CH002",
-            text: "Préférerais-tu être extrêmement riche ou extrêmement célèbre ?"
-        },
-        {
-            id: "CH003",
-            text: "Préférerais-tu ne plus jamais utiliser ton téléphone ou ne plus jamais voyager ?"
-        },
-        {
-            id: "CH004",
-            text: "Préférerais-tu connaître toute la vérité ou pouvoir modifier une seule erreur du passé ?"
-        },
-        {
-            id: "CH005",
-            text: "Préférerais-tu être incapable de mentir ou incapable de dire toute la vérité ?"
-        },
-        {
-            id: "CH006",
-            text: "Préférerais-tu vivre sans musique ou sans films ?"
-        },
-        {
-            id: "CH007",
-            text: "Préférerais-tu être aimé par tout le monde ou respecté par tout le monde ?"
-        },
-        {
-            id: "CH008",
-            text: "Préférerais-tu avoir toujours raison ou toujours avoir de la chance ?"
-        }
+        "Préférerais-tu pouvoir lire les pensées ou voir le futur ?",
+
+        "Préférerais-tu être extrêmement riche ou extrêmement célèbre ?",
+
+        "Préférerais-tu ne plus jamais utiliser ton téléphone ou ne plus jamais voyager ?",
+
+        "Préférerais-tu connaître toute la vérité ou modifier une seule erreur du passé ?",
+
+        "Préférerais-tu être incapable de mentir ou incapable de dire toute la vérité ?",
+
+        "Préférerais-tu avoir toujours raison ou toujours avoir de la chance ?"
 
     ],
 
@@ -517,26 +323,13 @@ const QUESTIONS = {
 
     GROUP_TRUTH: [
 
-        {
-            id: "GT001",
-            text: "Chacun donne une première impression honnête qu'il a eue sur quelqu'un ici."
-        },
-        {
-            id: "GT002",
-            text: "Chacun dit une qualité qu'il apprécie chez la personne à sa droite."
-        },
-        {
-            id: "GT003",
-            text: "Chacun donne une chose que le groupe ignore probablement sur lui."
-        },
-        {
-            id: "GT004",
-            text: "Chacun désigne une personne avec qui il partirait en vacances."
-        },
-        {
-            id: "GT005",
-            text: "Chacun dit qui il appellerait en premier en cas de gros problème."
-        }
+        "Chacun donne une première impression honnête qu'il a eue sur quelqu'un ici.",
+
+        "Chacun dit une qualité qu'il apprécie chez la personne à sa droite.",
+
+        "Chacun donne une chose que le groupe ignore probablement sur lui.",
+
+        "Chacun désigne une personne avec qui il partirait en vacances."
 
     ],
 
@@ -547,156 +340,15 @@ const QUESTIONS = {
 
     EXPRESSION: [
 
-        {
-            id: "E001",
-            expression: "Avoir le cœur sur la main"
-        },
-        {
-            id: "E002",
-            expression: "Tomber dans les pommes"
-        },
-        {
-            id: "E003",
-            expression: "Donner sa langue au chat"
-        },
-        {
-            id: "E004",
-            expression: "Poser un lapin"
-        },
-        {
-            id: "E005",
-            expression: "Avoir une mémoire de poisson rouge"
-        },
-        {
-            id: "E006",
-            expression: "Être dans la lune"
-        },
-        {
-            id: "E007",
-            expression: "Mettre les pieds dans le plat"
-        },
-        {
-            id: "E008",
-            expression: "Coûter les yeux de la tête"
-        },
-        {
-            id: "E009",
-            expression: "Casser les pieds"
-        },
-        {
-            id: "E010",
-            expression: "Avoir un poil dans la main"
-        }
+        "Avoir le cœur sur la main",
 
-    ],
+        "Tomber dans les pommes",
 
+        "Donner sa langue au chat",
 
-    /* ========================================================
-       MIME
-       ======================================================== */
+        "Poser un lapin",
 
-    MIME: [
-
-        {
-            id: "MI001",
-            action: "Faire semblant de conduire une voiture"
-        },
-        {
-            id: "MI002",
-            action: "Faire semblant de cuisiner"
-        },
-        {
-            id: "MI003",
-            action: "Faire semblant d'être au téléphone"
-        },
-        {
-            id: "MI004",
-            action: "Faire semblant de gagner à la loterie"
-        },
-        {
-            id: "MI005",
-            action: "Faire semblant d'avoir peur d'une araignée"
-        },
-        {
-            id: "MI006",
-            action: "Faire semblant d'être un serveur"
-        },
-        {
-            id: "MI007",
-            action: "Faire semblant de rater son avion"
-        },
-        {
-            id: "MI008",
-            action: "Faire semblant d'être une célébrité"
-        }
-
-    ],
-
-
-    /* ========================================================
-       IMPRO
-       ======================================================== */
-
-    IMPRO: [
-
-        {
-            id: "I001",
-            prompt: "Tu es un agent secret qui vient de perdre son identité."
-        },
-        {
-            id: "I002",
-            prompt: "Tu es un vendeur qui essaie de vendre un objet complètement inutile."
-        },
-        {
-            id: "I003",
-            prompt: "Tu es un professeur qui doit expliquer quelque chose qu'il ne comprend pas."
-        },
-        {
-            id: "I004",
-            prompt: "Tu es une célébrité qui essaie de passer incognito."
-        },
-        {
-            id: "I005",
-            prompt: "Tu es un client furieux qui réclame quelque chose d'impossible."
-        },
-        {
-            id: "I006",
-            prompt: "Tu dois convaincre le groupe que tu viens du futur."
-        }
-
-    ],
-
-
-    /* ========================================================
-       DUOS
-       ======================================================== */
-
-    DUO: [
-
-        {
-            id: "D001",
-            prompt: "À deux, inventez une entreprise complètement inutile."
-        },
-        {
-            id: "D002",
-            prompt: "À deux, jouez une dispute pour une raison ridicule."
-        },
-        {
-            id: "D003",
-            prompt: "À deux, inventez votre propre émission de télévision."
-        },
-        {
-            id: "D004",
-            prompt: "À deux, faites croire au groupe que vous êtes meilleurs amis depuis 20 ans."
-        },
-        {
-            id: "D005",
-            prompt: "À deux, inventez une théorie du complot absurde."
-        },
-        {
-            id: "D006",
-            prompt: "À deux, essayez de vendre un objet présent dans la pièce comme s'il valait une fortune."
-        }
+        "Avoir une mémoire de poisson rouge"
 
     ],
 
@@ -707,233 +359,128 @@ const QUESTIONS = {
 
     MISSION: [
 
-        {
-            id: "MS001",
-            mission: "Fais dire le mot « voiture » à quelqu'un sans lui demander directement."
-        },
-        {
-            id: "MS002",
-            mission: "Fais rire une personne précise sans lui dire pourquoi."
-        },
-        {
-            id: "MS003",
-            mission: "Obtiens un compliment de quelqu'un."
-        },
-        {
-            id: "MS004",
-            mission: "Fais changer quelqu'un de place naturellement."
-        },
-        {
-            id: "MS005",
-            mission: "Fais prononcer ton prénom à quelqu'un."
-        },
-        {
-            id: "MS006",
-            mission: "Convaincs quelqu'un que tu as oublié quelque chose d'important."
-        }
+        "Place naturellement le mot « banane » dans une conversation.",
+
+        "Fais rire une personne sans qu'elle comprenne que c'était ta mission.",
+
+        "Obtiens discrètement un « pourquoi ? » de quelqu'un.",
+
+        "Fais parler quelqu'un d'un film sans lui poser directement la question."
 
     ],
 
 
     /* ========================================================
-       RÈGLES SECRÈTES
+       DEVINE MON MOT
        ======================================================== */
 
-    SECRET_RULE: [
+    GUESS_WORD: [
 
-        {
-            id: "R001",
-            rule: "Pendant les deux prochains tours, termine chaque phrase par « chef »."
-        },
-        {
-            id: "R002",
-            rule: "Pendant les trois prochains tours, personne ne doit prononcer ton prénom."
-        },
-        {
-            id: "R003",
-            rule: "La prochaine personne qui croise les bras reçoit une pénalité."
-        },
-        {
-            id: "R004",
-            rule: "La prochaine personne qui regarde son téléphone reçoit une pénalité."
-        },
-        {
-            id: "R005",
-            rule: "Pendant deux tours, toute personne qui dit « oui » doit recommencer sa phrase."
-        }
+        "Téléphone",
+
+        "Vacances",
+
+        "Fantôme",
+
+        "Pizza",
+
+        "Mariage",
+
+        "Prison",
+
+        "Plage",
+
+        "Argent"
 
     ],
 
 
     /* ========================================================
-       PIÈGES À MOT
+       DESCRIPTION
+       ======================================================== */
+
+    DESCRIPTION: [
+
+        "Décris un animal sans prononcer son nom ni faire son bruit.",
+
+        "Décris une célébrité sans donner son métier.",
+
+        "Décris un objet présent dans la pièce sans le montrer."
+
+    ],
+
+
+    /* ========================================================
+       MIME
+       ======================================================== */
+
+    MIME: [
+
+        "Faire du ski",
+
+        "Réparer une voiture",
+
+        "Être coincé dans un ascenseur",
+
+        "Chercher ses clés",
+
+        "Faire semblant d'être un robot"
+
+    ],
+
+
+    /* ========================================================
+       PIÈGE
+       ======================================================== */
+
+    TRAP_PROMPT: [
+
+        "Fais raconter au groupe une histoire sur son dernier voyage.",
+
+        "Fais dire le mot « vraiment » à quelqu'un.",
+
+        "Fais poser une question à la personne à ta gauche."
+
+    ],
+
+
+    /* ========================================================
+       MOT PIÈGE
        ======================================================== */
 
     TRAP_WORD: [
 
         {
-            id: "TW001",
-            word: "argent",
-            forbidden: ["fric", "euros"]
+            word: "vraiment"
         },
+
         {
-            id: "TW002",
-            word: "soirée",
-            forbidden: ["fête", "party"]
+            word: "genre"
         },
+
         {
-            id: "TW003",
-            word: "téléphone",
-            forbidden: ["portable", "mobile"]
+            word: "franchement"
         },
+
         {
-            id: "TW004",
-            word: "restaurant",
-            forbidden: ["manger", "repas"]
-        },
-        {
-            id: "TW005",
-            word: "voiture",
-            forbidden: ["bagnole", "véhicule"]
-        },
-        {
-            id: "TW006",
-            word: "amour",
-            forbidden: ["aimer", "couple"]
+            word: "exactement"
         }
 
     ],
 
 
     /* ========================================================
-       PIÈGES — PROMPTS
+       IMPROVISATION
        ======================================================== */
 
-    TRAP_PROMPT: [
+    IMPRO: [
 
-        {
-            id: "TP001",
-            prompt: "Fais parler la cible pendant que tu essaies de lui faire prononcer un mot précis."
-        },
-        {
-            id: "TP002",
-            prompt: "Pose trois questions à la cible sans révéler pourquoi tu les poses."
-        },
-        {
-            id: "TP003",
-            prompt: "Convaincs la cible d'être d'accord avec une affirmation complètement absurde."
-        },
-        {
-            id: "TP004",
-            prompt: "Fais raconter une anecdote embarrassante à la cible sans lui demander directement."
-        },
-        {
-            id: "TP005",
-            prompt: "Fais répéter une même expression à la cible au moins deux fois."
-        }
+        "Vends un objet banal comme s'il coûtait 10 000 €.",
 
-    ],
+        "Défends une opinion absurde pendant 20 secondes.",
 
-
-    /* ========================================================
-       MOTS À DEVINER
-       ======================================================== */
-
-    GUESS_WORD: [
-
-        {
-            id: "GW001",
-            word: "Plage"
-        },
-        {
-            id: "GW002",
-            word: "Avion"
-        },
-        {
-            id: "GW003",
-            word: "Pizza"
-        },
-        {
-            id: "GW004",
-            word: "Fantôme"
-        },
-        {
-            id: "GW005",
-            word: "Mariage"
-        },
-        {
-            id: "GW006",
-            word: "Prison"
-        },
-        {
-            id: "GW007",
-            word: "Vacances"
-        },
-        {
-            id: "GW008",
-            word: "Anniversaire"
-        }
-
-    ],
-
-
-    /* ========================================================
-       DESCRIPTIONS SECRÈTES
-       ======================================================== */
-
-    DESCRIPTION: [
-
-        {
-            id: "DS001",
-            prompt: "Fais deviner un téléphone sans utiliser les mots « téléphone », « portable » ou « appel »."
-        },
-        {
-            id: "DS002",
-            prompt: "Fais deviner une plage sans utiliser les mots « mer », « sable » ou « vacances »."
-        },
-        {
-            id: "DS003",
-            prompt: "Fais deviner une pizza sans utiliser les mots « manger », « fromage » ou « restaurant »."
-        },
-        {
-            id: "DS004",
-            prompt: "Fais deviner une voiture sans utiliser les mots « conduire », « route » ou « véhicule »."
-        },
-        {
-            id: "DS005",
-            prompt: "Fais deviner un anniversaire sans utiliser les mots « gâteau », « cadeau » ou « fête »."
-        },
-        {
-            id: "DS006",
-            prompt: "Fais deviner un avion sans utiliser les mots « voler », « aéroport » ou « voyage »."
-        }
+        "Fais une publicité improvisée pour la personne à ta droite."
 
     ]
 
 };
-
-
-/* ============================================================
-   HELPERS
-   ============================================================ */
-
-function getQuestionPool(type) {
-
-    return QUESTIONS[type] || [];
-
-}
-
-
-function getRandomQuestion(type) {
-
-    const pool = getQuestionPool(type);
-
-    if (!pool.length) {
-        return null;
-    }
-
-    return pool[
-        Math.floor(Math.random() * pool.length)
-    ];
-
-}
