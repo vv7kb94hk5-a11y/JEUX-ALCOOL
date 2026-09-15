@@ -1,512 +1,572 @@
 /* ============================================================
    SOIRÉE — GAME DATABASE
-   BUILD 08.5
+   BUILD 08.7
    ============================================================
 
-   NOUVELLE ARCHITECTURE
+   PRINCIPES :
+   - Aucun écran INTRO inutile
+   - Aucun écran PENALTY séparé
+   - Aucun écran RESULT intermédiaire inutile
+   - Une action = une étape claire
+   - Maximum de fluidité
+   - Les secrets passent uniquement par le téléphone
+   - Les conséquences sont intégrées à RESOLVE / SUCCESS_CHECK
 
-   Un jeu décrit une expérience, pas une succession
-   d'écrans techniques.
+   ARCHITECTURE DES FLUX :
 
-   FLOWS DISPONIBLES :
+   JEU PUBLIC AVEC VOTE
+   ACTION → VOTE → RESOLVE
 
-   INTRO
-   SELECT_TARGET
-   SELECT_PLAYERS
-   PASS_SECRET
-   SECRET_ACTION
-   ACTION
-   VOTE
-   RESOLVE
-   SUCCESS_CHECK
-   PENALTY
+   JEU PUBLIC AVEC RÉUSSITE
+   ACTION → SUCCESS_CHECK
 
-   RÈGLE :
-   aucune phase technique inutile.
+   JEU SECRET
+   PASS_SECRET → SECRET_ACTION → SUCCESS_CHECK
+
+   MISSION SECRÈTE
+   PASS_SECRET → SECRET_ACTION
+
    ============================================================ */
 
-
-/* ============================================================
-   GAMES
-   ============================================================ */
 
 const GAMES = [
 
   /* ==========================================================
-     01 — QUI POURRAIT ?
+     G001 — QUI POURRAIT ?
      ========================================================== */
 
   {
     id: "G001",
     name: "Qui pourrait ?",
-
-    type: GAME_TYPES.GROUP_VOTE,
     family: "VOTE",
 
-    target: TARGET_MODES.NONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 1,
+    cooldown: 6,
+
+    type: GAME_TYPES.GROUP_VOTE,
+
     actor: ACTOR_MODES.NONE,
+    target: TARGET_MODES.ONE,
 
     phone: false,
+
+    contentPool: "VOTE",
 
     voteMode: VOTE_MODES.GROUP_CONFIRM,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "VOTE",
-
     flow: [
-      FLOW_PHASES.INTRO,
       FLOW_PHASES.ACTION,
       FLOW_PHASES.VOTE,
-      FLOW_PHASES.RESOLVE,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.RESOLVE
     ]
   },
 
 
   /* ==========================================================
-     02 — MAJORITÉ
+     G002 — MAJORITÉ
      ========================================================== */
 
   {
     id: "G002",
     name: "Majorité",
-
-    type: GAME_TYPES.GROUP_VOTE,
     family: "VOTE",
 
-    /*
-      AUCUNE CIBLE AVANT LE VOTE.
-      Le groupe la détermine.
-    */
+    minPlayers: 3,
+    maxPlayers: 12,
 
-    target: TARGET_MODES.NONE,
+    intensity: 1,
+    cooldown: 6,
+
+    type: GAME_TYPES.GROUP_VOTE,
+
     actor: ACTOR_MODES.NONE,
+    target: TARGET_MODES.ONE,
 
     phone: false,
+
+    contentPool: "MAJORITY",
 
     voteMode: VOTE_MODES.GROUP_CONFIRM,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "MAJORITY",
-
     flow: [
-      FLOW_PHASES.INTRO,
       FLOW_PHASES.ACTION,
       FLOW_PHASES.VOTE,
-      FLOW_PHASES.RESOLVE,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.RESOLVE
     ]
   },
 
 
   /* ==========================================================
-     03 — CIBLE DU GROUPE
+     G003 — CIBLE DU GROUPE
      ========================================================== */
 
   {
     id: "G003",
     name: "Cible du groupe",
-
-    type: GAME_TYPES.GROUP_VOTE,
     family: "VOTE",
 
-    target: TARGET_MODES.NONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 1,
+    cooldown: 7,
+
+    type: GAME_TYPES.GROUP_VOTE,
+
     actor: ACTOR_MODES.NONE,
+    target: TARGET_MODES.ONE,
 
     phone: false,
+
+    contentPool: "TARGET",
 
     voteMode: VOTE_MODES.GROUP_CONFIRM,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "TARGET",
-
     flow: [
-      FLOW_PHASES.INTRO,
       FLOW_PHASES.ACTION,
       FLOW_PHASES.VOTE,
-      FLOW_PHASES.RESOLVE,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.RESOLVE
     ]
   },
 
 
   /* ==========================================================
-     04 — QUI ME CONNAÎT ?
+     G004 — QUI ME CONNAÎT ?
      ========================================================== */
 
   {
     id: "G004",
     name: "Qui me connaît ?",
+    family: "CONNAISSANCE",
+
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 1,
+    cooldown: 8,
 
     type: GAME_TYPES.INDIVIDUAL,
-    family: "QUESTION",
 
-    target: TARGET_MODES.ONE,
     actor: ACTOR_MODES.TARGET,
+    target: TARGET_MODES.ONE,
 
     phone: false,
+
+    contentPool: "KNOWLEDGE",
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "KNOWLEDGE",
+    autoTarget: true,
 
     flow: [
-      FLOW_PHASES.INTRO,
-      FLOW_PHASES.SELECT_TARGET,
       FLOW_PHASES.ACTION,
-      FLOW_PHASES.SUCCESS_CHECK,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.SUCCESS_CHECK
     ]
   },
 
 
   /* ==========================================================
-     05 — LE PLUS SUSPECT
+     G005 — LE PLUS SUSPECT
      ========================================================== */
 
   {
     id: "G005",
     name: "Le plus suspect",
-
-    type: GAME_TYPES.GROUP_VOTE,
     family: "VOTE",
 
-    target: TARGET_MODES.NONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 8,
+
+    type: GAME_TYPES.GROUP_VOTE,
+
     actor: ACTOR_MODES.NONE,
+    target: TARGET_MODES.ONE,
 
     phone: false,
+
+    contentPool: "SUSPECT",
 
     voteMode: VOTE_MODES.GROUP_CONFIRM,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "SUSPECT",
-
     flow: [
-      FLOW_PHASES.INTRO,
       FLOW_PHASES.ACTION,
       FLOW_PHASES.VOTE,
-      FLOW_PHASES.RESOLVE,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.RESOLVE
     ]
   },
 
 
   /* ==========================================================
-     06 — CATÉGORIE EXPRESS
+     G006 — CATÉGORIE EXPRESS
      ========================================================== */
 
   {
     id: "G006",
     name: "Catégorie express",
-
-    type: GAME_TYPES.RAPID,
     family: "RAPIDITE",
 
-    target: TARGET_MODES.NONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 7,
+
+    type: GAME_TYPES.RAPID,
+
     actor: ACTOR_MODES.RANDOM,
+    target: TARGET_MODES.NONE,
 
     phone: false,
-
-    voteMode: VOTE_MODES.NONE,
-    penalty: PENALTIES.LOSER,
 
     contentPool: "CATEGORY",
 
     timer: 10,
 
+    voteMode: VOTE_MODES.NONE,
+    penalty: PENALTIES.LOSER,
+
     flow: [
-      FLOW_PHASES.INTRO,
       FLOW_PHASES.ACTION,
-      FLOW_PHASES.SUCCESS_CHECK,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.SUCCESS_CHECK
     ]
   },
 
 
   /* ==========================================================
-     07 — ASSOCIATION
+     G007 — ASSOCIATION
      ========================================================== */
 
   {
     id: "G007",
     name: "Association",
-
-    type: GAME_TYPES.RAPID,
     family: "RAPIDITE",
 
-    target: TARGET_MODES.NONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 7,
+
+    type: GAME_TYPES.RAPID,
+
     actor: ACTOR_MODES.RANDOM,
+    target: TARGET_MODES.NONE,
 
     phone: false,
+
+    contentPool: "WORD",
+
+    timer: 8,
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "WORD",
-
-    timer: 5,
-
     flow: [
-      FLOW_PHASES.INTRO,
       FLOW_PHASES.ACTION,
-      FLOW_PHASES.SUCCESS_CHECK,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.SUCCESS_CHECK
     ]
   },
 
 
   /* ==========================================================
-     08 — MOT INTERDIT
+     G008 — MOT INTERDIT
      ========================================================== */
 
   {
     id: "G008",
     name: "Mot interdit",
-
-    type: GAME_TYPES.SECRET,
     family: "SECRET",
 
-    target: TARGET_MODES.ONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 8,
+
+    type: GAME_TYPES.SECRET,
+
     actor: ACTOR_MODES.TARGET,
+    target: TARGET_MODES.ONE,
 
     phone: true,
+
+    contentPool: "FORBIDDEN_WORD",
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "FORBIDDEN_WORD",
-
-    /*
-      3 moments :
-
-      1. Passe le téléphone
-      2. Secret + règle
-      3. Réussite ?
-    */
+    autoTarget: true,
 
     flow: [
       FLOW_PHASES.PASS_SECRET,
       FLOW_PHASES.SECRET_ACTION,
-      FLOW_PHASES.SUCCESS_CHECK,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.SUCCESS_CHECK
     ]
   },
 
 
   /* ==========================================================
-     09 — LE MOT SUIVANT
+     G009 — LE MOT SUIVANT
      ========================================================== */
 
   {
     id: "G009",
     name: "Le mot suivant",
-
-    type: GAME_TYPES.RAPID,
     family: "RAPIDITE",
 
-    target: TARGET_MODES.NONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 7,
+
+    type: GAME_TYPES.RAPID,
+
     actor: ACTOR_MODES.RANDOM,
+    target: TARGET_MODES.NONE,
 
     phone: false,
+
+    contentPool: "WORD",
+
+    timer: 8,
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "WORD",
-
-    timer: 5,
-
     flow: [
-      FLOW_PHASES.INTRO,
       FLOW_PHASES.ACTION,
-      FLOW_PHASES.SUCCESS_CHECK,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.SUCCESS_CHECK
     ]
   },
 
 
   /* ==========================================================
-     10 — PIÈGE À MOT
+     G010 — PIÈGE À MOT
      ========================================================== */
 
   {
     id: "G010",
     name: "Piège à mot",
-
-    type: GAME_TYPES.SECRET,
     family: "SECRET",
 
-    target: TARGET_MODES.ONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 9,
+
+    type: GAME_TYPES.SECRET,
+
     actor: ACTOR_MODES.TARGET,
+    target: TARGET_MODES.ONE,
 
     phone: true,
+
+    contentPool: "TRAP_WORD",
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "TRAP_WORD",
+    autoTarget: true,
 
     flow: [
       FLOW_PHASES.PASS_SECRET,
       FLOW_PHASES.SECRET_ACTION,
-      FLOW_PHASES.SUCCESS_CHECK,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.SUCCESS_CHECK
     ]
   },
 
 
   /* ==========================================================
-     11 — DEUX VÉRITÉS, UN MENSONGE
+     G011 — DEUX VÉRITÉS, UN MENSONGE
      ========================================================== */
 
   {
     id: "G011",
     name: "Deux vérités, un mensonge",
-
-    type: GAME_TYPES.BLUFF,
     family: "BLUFF",
 
-    target: TARGET_MODES.ONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 10,
+
+    type: GAME_TYPES.BLUFF,
+
     actor: ACTOR_MODES.TARGET,
+    target: TARGET_MODES.ONE,
 
     phone: false,
 
-    voteMode: VOTE_MODES.GROUP_CONFIRM,
-    penalty: PENALTIES.LOSER,
-
     contentPool: "STATEMENTS",
 
+    voteMode: VOTE_MODES.SECRET,
+    penalty: PENALTIES.LOSER,
+
+    autoTarget: true,
+
     flow: [
-      FLOW_PHASES.INTRO,
-      FLOW_PHASES.SELECT_TARGET,
       FLOW_PHASES.ACTION,
       FLOW_PHASES.VOTE,
-      FLOW_PHASES.RESOLVE,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.RESOLVE
     ]
   },
 
 
   /* ==========================================================
-     12 — BLUFF TOTAL
+     G012 — BLUFF TOTAL
      ========================================================== */
 
   {
     id: "G012",
     name: "Bluff total",
-
-    type: GAME_TYPES.BLUFF,
     family: "BLUFF",
 
-    target: TARGET_MODES.ONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 10,
+
+    type: GAME_TYPES.BLUFF,
+
     actor: ACTOR_MODES.TARGET,
+    target: TARGET_MODES.ONE,
 
     phone: false,
 
-    voteMode: VOTE_MODES.GROUP_CONFIRM,
-    penalty: PENALTIES.LOSER,
-
     contentPool: "BLUFF",
 
+    voteMode: VOTE_MODES.SECRET,
+    penalty: PENALTIES.LOSER,
+
+    autoTarget: true,
+
     flow: [
-      FLOW_PHASES.INTRO,
-      FLOW_PHASES.SELECT_TARGET,
       FLOW_PHASES.ACTION,
       FLOW_PHASES.VOTE,
-      FLOW_PHASES.RESOLVE,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.RESOLVE
     ]
   },
 
 
   /* ==========================================================
-     13 — QUI MENT ?
+     G013 — QUI MENT ?
      ========================================================== */
 
   {
     id: "G013",
     name: "Qui ment ?",
-
-    type: GAME_TYPES.BLUFF,
     family: "BLUFF",
 
-    target: TARGET_MODES.TWO,
+    minPlayers: 4,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 10,
+
+    type: GAME_TYPES.BLUFF,
+
     actor: ACTOR_MODES.SELECTED,
+    target: TARGET_MODES.TWO,
 
     phone: false,
 
-    voteMode: VOTE_MODES.GROUP_CONFIRM,
-    penalty: PENALTIES.LOSER,
-
     contentPool: "BLUFF",
 
+    voteMode: VOTE_MODES.SECRET,
+    penalty: PENALTIES.LOSER,
+
+    autoTarget: true,
+
     flow: [
-      FLOW_PHASES.INTRO,
-      FLOW_PHASES.SELECT_PLAYERS,
       FLOW_PHASES.ACTION,
       FLOW_PHASES.VOTE,
-      FLOW_PHASES.RESOLVE,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.RESOLVE
     ]
   },
 
 
   /* ==========================================================
-     14 — LE PIÈGE
+     G014 — LE PIÈGE
      ========================================================== */
 
   {
     id: "G014",
     name: "Le piège",
+    family: "SECRET",
+
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 10,
 
     type: GAME_TYPES.SECRET,
-    family: "BLUFF",
 
-    target: TARGET_MODES.ONE,
     actor: ACTOR_MODES.TARGET,
+    target: TARGET_MODES.ONE,
 
     phone: true,
+
+    contentPool: "TRAP_PROMPT",
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "TRAP_PROMPT",
+    autoTarget: true,
 
     flow: [
       FLOW_PHASES.PASS_SECRET,
       FLOW_PHASES.SECRET_ACTION,
-      FLOW_PHASES.SUCCESS_CHECK,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.SUCCESS_CHECK
     ]
   },
 
 
   /* ==========================================================
-     15 — MISSION SECRÈTE
+     G015 — MISSION SECRÈTE
      ========================================================== */
 
   {
     id: "G015",
     name: "Mission secrète",
+    family: "SECRET",
+
+    minPlayers: 4,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 12,
 
     type: GAME_TYPES.SECRET,
-    family: "BLUFF",
 
-    target: TARGET_MODES.ONE,
     actor: ACTOR_MODES.TARGET,
+    target: TARGET_MODES.ONE,
 
     phone: true,
+
+    contentPool: "MISSION",
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.NONE,
 
-    contentPool: "MISSION",
+    autoTarget: true,
 
-    /*
-      La mission peut continuer pendant la soirée.
-      Pas de pénalité automatique.
-    */
+    persistentMission: true,
 
     flow: [
       FLOW_PHASES.PASS_SECRET,
@@ -516,191 +576,216 @@ const GAMES = [
 
 
   /* ==========================================================
-     16 — DEVINE MON MOT
+     G016 — DEVINE MON MOT
      ========================================================== */
 
   {
     id: "G016",
     name: "Devine mon mot",
-
-    type: GAME_TYPES.SECRET,
     family: "DEVINETTE",
 
-    target: TARGET_MODES.ONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 9,
+
+    type: GAME_TYPES.SECRET,
+
     actor: ACTOR_MODES.TARGET,
+    target: TARGET_MODES.ONE,
 
     phone: true,
+
+    contentPool: "GUESS_WORD",
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "GUESS_WORD",
+    autoTarget: true,
 
     flow: [
       FLOW_PHASES.PASS_SECRET,
       FLOW_PHASES.SECRET_ACTION,
-      FLOW_PHASES.SUCCESS_CHECK,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.SUCCESS_CHECK
     ]
   },
 
 
   /* ==========================================================
-     17 — DESCRIPTION IMPOSSIBLE
+     G017 — DESCRIPTION IMPOSSIBLE
      ========================================================== */
 
   {
     id: "G017",
     name: "Description impossible",
-
-    type: GAME_TYPES.SECRET,
     family: "DEVINETTE",
 
-    target: TARGET_MODES.ONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 9,
+
+    type: GAME_TYPES.SECRET,
+
     actor: ACTOR_MODES.TARGET,
+    target: TARGET_MODES.ONE,
 
     phone: true,
+
+    contentPool: "DESCRIPTION",
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "DESCRIPTION",
+    autoTarget: true,
 
     flow: [
       FLOW_PHASES.PASS_SECRET,
       FLOW_PHASES.SECRET_ACTION,
-      FLOW_PHASES.SUCCESS_CHECK,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.SUCCESS_CHECK
     ]
   },
 
 
   /* ==========================================================
-     18 — MIME EXPRESS
+     G018 — MIME EXPRESS
      ========================================================== */
 
   {
     id: "G018",
     name: "Mime express",
-
-    type: GAME_TYPES.SECRET,
     family: "DEVINETTE",
 
-    target: TARGET_MODES.ONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 8,
+
+    type: GAME_TYPES.SECRET,
+
     actor: ACTOR_MODES.TARGET,
+    target: TARGET_MODES.ONE,
 
     phone: true,
+
+    contentPool: "MIME",
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "MIME",
+    autoTarget: true,
 
     flow: [
       FLOW_PHASES.PASS_SECRET,
       FLOW_PHASES.SECRET_ACTION,
-      FLOW_PHASES.SUCCESS_CHECK,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.SUCCESS_CHECK
     ]
   },
 
 
   /* ==========================================================
-     19 — L'EXPRESSION
+     G019 — L'EXPRESSION
      ========================================================== */
 
   {
     id: "G019",
     name: "L'expression",
-
-    type: GAME_TYPES.SECRET,
     family: "DEVINETTE",
 
-    target: TARGET_MODES.ONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 9,
+
+    type: GAME_TYPES.SECRET,
+
     actor: ACTOR_MODES.TARGET,
+    target: TARGET_MODES.ONE,
 
     phone: true,
+
+    contentPool: "EXPRESSION",
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "EXPRESSION",
-
-    /*
-      FLOW FINAL :
-
-      Écran 1
-      Passe le téléphone à Guillaume
-
-      Écran 2
-      Expression + consigne secrète
-
-      Écran 3
-      Guillaume : réussi OUI / NON
-    */
+    autoTarget: true,
 
     flow: [
       FLOW_PHASES.PASS_SECRET,
       FLOW_PHASES.SECRET_ACTION,
-      FLOW_PHASES.SUCCESS_CHECK,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.SUCCESS_CHECK
     ]
   },
 
 
   /* ==========================================================
-     20 — QUESTION CHAUDE
+     G020 — QUESTION CHAUDE
      ========================================================== */
 
   {
     id: "G020",
     name: "Question chaude",
-
-    type: GAME_TYPES.INDIVIDUAL,
     family: "PERSONNEL",
 
-    target: TARGET_MODES.ONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 8,
+
+    type: GAME_TYPES.INDIVIDUAL,
+
     actor: ACTOR_MODES.TARGET,
+    target: TARGET_MODES.ONE,
 
     phone: false,
+
+    contentPool: "HOT",
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.NONE,
 
-    contentPool: "HOT",
+    autoTarget: true,
 
     flow: [
-      FLOW_PHASES.INTRO,
-      FLOW_PHASES.SELECT_TARGET,
-      FLOW_PHASES.ACTION,
-      FLOW_PHASES.RESOLVE
+      FLOW_PHASES.ACTION
     ]
   },
 
 
   /* ==========================================================
-     21 — CHOIX IMPOSSIBLE
+     G021 — CHOIX IMPOSSIBLE
      ========================================================== */
 
   {
     id: "G021",
     name: "Choix impossible",
-
-    type: GAME_TYPES.GROUP,
     family: "CHOIX",
 
-    target: TARGET_MODES.ALL,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 1,
+    cooldown: 7,
+
+    type: GAME_TYPES.GROUP,
+
     actor: ACTOR_MODES.NONE,
+    target: TARGET_MODES.ALL,
 
     phone: false,
+
+    contentPool: "CHOICE",
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.NONE,
 
-    contentPool: "CHOICE",
-
     flow: [
-      FLOW_PHASES.INTRO,
       FLOW_PHASES.ACTION,
       FLOW_PHASES.RESOLVE
     ]
@@ -708,28 +793,33 @@ const GAMES = [
 
 
   /* ==========================================================
-     22 — VÉRITÉ DE GROUPE
+     G022 — VÉRITÉ DE GROUPE
      ========================================================== */
 
   {
     id: "G022",
     name: "Vérité de groupe",
-
-    type: GAME_TYPES.GROUP,
     family: "GROUPE",
 
-    target: TARGET_MODES.ALL,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 8,
+
+    type: GAME_TYPES.GROUP,
+
     actor: ACTOR_MODES.NONE,
+    target: TARGET_MODES.ALL,
 
     phone: false,
+
+    contentPool: "GROUP_TRUTH",
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.NONE,
 
-    contentPool: "GROUP_TRUTH",
-
     flow: [
-      FLOW_PHASES.INTRO,
       FLOW_PHASES.ACTION,
       FLOW_PHASES.RESOLVE
     ]
@@ -737,32 +827,37 @@ const GAMES = [
 
 
   /* ==========================================================
-     23 — MISSION IMPROVISÉE
+     G023 — MISSION IMPROVISÉE
      ========================================================== */
 
   {
     id: "G023",
     name: "Mission improvisée",
-
-    type: GAME_TYPES.INDIVIDUAL,
     family: "IMPRO",
 
-    target: TARGET_MODES.ONE,
+    minPlayers: 3,
+    maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 8,
+
+    type: GAME_TYPES.INDIVIDUAL,
+
     actor: ACTOR_MODES.TARGET,
+    target: TARGET_MODES.ONE,
 
     phone: false,
+
+    contentPool: "IMPRO",
 
     voteMode: VOTE_MODES.NONE,
     penalty: PENALTIES.LOSER,
 
-    contentPool: "IMPRO",
+    autoTarget: true,
 
     flow: [
-      FLOW_PHASES.INTRO,
-      FLOW_PHASES.SELECT_TARGET,
       FLOW_PHASES.ACTION,
-      FLOW_PHASES.SUCCESS_CHECK,
-      FLOW_PHASES.PENALTY
+      FLOW_PHASES.SUCCESS_CHECK
     ]
   }
 
@@ -770,149 +865,128 @@ const GAMES = [
 
 
 /* ============================================================
-   INDEX
-   ============================================================ */
-
-const GAME_INDEX = {};
-
-GAMES.forEach(game => {
-
-  GAME_INDEX[game.id] = game;
-
-});
-
-
-/* ============================================================
-   ACCÈS
+   OUTILS
    ============================================================ */
 
 function getGameById(id) {
-
-  return GAME_INDEX[id] || null;
+  return GAMES.find(game => game.id === id) || null;
 }
 
 
-function getAllGames() {
-
-  return [...GAMES];
-}
-
-
-function getGamesByFamily(family) {
-
-  return GAMES.filter(
-    game => game.family === family
-  );
-}
-
-
-function getGamesByType(type) {
-
-  return GAMES.filter(
-    game => game.type === type
+function getGamesForPlayerCount(playerCount) {
+  return GAMES.filter(game =>
+    playerCount >= game.minPlayers &&
+    playerCount <= game.maxPlayers
   );
 }
 
 
 /* ============================================================
-   VALIDATION
+   VALIDATION DU CATALOGUE
    ============================================================ */
 
-function validateGamesDatabase() {
+function validateGames() {
 
   const errors = [];
 
-  const ids = new Set();
+  if (!Array.isArray(GAMES)) {
+    errors.push("GAMES doit être un tableau.");
+    return errors;
+  }
 
+  const ids = new Set();
 
   GAMES.forEach(game => {
 
-    /* --------------------------------------------------------
-       ID
-       -------------------------------------------------------- */
+    if (!game.id) {
+      errors.push("Jeu sans ID.");
+    }
 
     if (ids.has(game.id)) {
-
-      errors.push({
-
-        game: game.id,
-
-        errors: [
-          "ID dupliqué."
-        ]
-
-      });
-
+      errors.push(`ID dupliqué : ${game.id}`);
     }
 
     ids.add(game.id);
 
+    if (!game.name) {
+      errors.push(`${game.id} : nom manquant.`);
+    }
 
-    /* --------------------------------------------------------
-       VALIDATION MOTEUR
-       -------------------------------------------------------- */
+    if (!game.type) {
+      errors.push(`${game.id} : type manquant.`);
+    }
 
-    if (
-      typeof validateGameDefinition ===
-      "function"
-    ) {
+    if (!game.contentPool) {
+      errors.push(`${game.id} : contentPool manquant.`);
+    }
 
-      const gameErrors =
-        validateGameDefinition(game);
+    if (!Array.isArray(game.flow) || !game.flow.length) {
+      errors.push(`${game.id} : flow manquant.`);
+    }
 
-      if (gameErrors.length) {
+    /* Aucun écran technique ne doit apparaître dans le nouveau système. */
 
-        errors.push({
+    if (game.flow?.includes(FLOW_PHASES.INTRO)) {
+      errors.push(`${game.id} : INTRO interdit dans BUILD 08.7.`);
+    }
 
-          game: game.id,
+    if (game.flow?.includes(FLOW_PHASES.PENALTY)) {
+      errors.push(`${game.id} : PENALTY interdit dans BUILD 08.7.`);
+    }
 
-          errors: gameErrors
+    /* Les jeux secrets doivent toujours passer par le système privé. */
 
-        });
+    if (game.type === GAME_TYPES.SECRET) {
 
+      if (!game.phone) {
+        errors.push(`${game.id} : jeu SECRET sans téléphone.`);
+      }
+
+      if (!game.flow.includes(FLOW_PHASES.PASS_SECRET)) {
+        errors.push(`${game.id} : PASS_SECRET manquant.`);
+      }
+
+      if (!game.flow.includes(FLOW_PHASES.SECRET_ACTION)) {
+        errors.push(`${game.id} : SECRET_ACTION manquant.`);
       }
     }
 
-
-    /* --------------------------------------------------------
-       POOL
-       -------------------------------------------------------- */
+    /* Un vote nécessite une vraie phase de vote. */
 
     if (
-      typeof QUESTIONS === "undefined"
+      game.voteMode !== VOTE_MODES.NONE &&
+      !game.flow.includes(FLOW_PHASES.VOTE)
     ) {
+      errors.push(`${game.id} : voteMode actif sans phase VOTE.`);
+    }
 
-      errors.push({
+    /* Un GROUP_VOTE doit obligatoirement terminer par RESOLVE. */
 
-        game: game.id,
+    if (game.type === GAME_TYPES.GROUP_VOTE) {
 
-        errors: [
-          "QUESTIONS n'est pas chargé."
-        ]
+      if (!game.flow.includes(FLOW_PHASES.VOTE)) {
+        errors.push(`${game.id} : GROUP_VOTE sans VOTE.`);
+      }
 
-      });
+      if (!game.flow.includes(FLOW_PHASES.RESOLVE)) {
+        errors.push(`${game.id} : GROUP_VOTE sans RESOLVE.`);
+      }
+    }
 
-    } else if (
-      !game.contentPool ||
-      !Array.isArray(
-        QUESTIONS[game.contentPool]
-      )
+    /* Les jeux à réussite doivent avoir une vérification. */
+
+    if (
+      game.penalty !== PENALTIES.NONE &&
+      !game.flow.includes(FLOW_PHASES.SUCCESS_CHECK) &&
+      game.voteMode === VOTE_MODES.NONE &&
+      game.type !== GAME_TYPES.GROUP
     ) {
-
-      errors.push({
-
-        game: game.id,
-
-        errors: [
-          `Pool invalide : ${game.contentPool}`
-        ]
-
-      });
-
+      errors.push(
+        `${game.id} : pénalité sans SUCCESS_CHECK ni VOTE.`
+      );
     }
 
   });
-
 
   return errors;
 }
@@ -922,45 +996,19 @@ function validateGamesDatabase() {
    DIAGNOSTIC
    ============================================================ */
 
-function getGamesDiagnostic() {
+const GAME_VALIDATION_ERRORS = validateGames();
 
-  return GAMES.map(game => ({
+if (GAME_VALIDATION_ERRORS.length) {
 
-    id:
-      game.id,
+  console.error(
+    "SOIRÉE — ERREURS GAME DATABASE",
+    GAME_VALIDATION_ERRORS
+  );
 
-    name:
-      game.name,
+} else {
 
-    type:
-      game.type,
+  console.log(
+    `SOIRÉE — GAME DATABASE BUILD 08.7 OK (${GAMES.length} jeux)`
+  );
 
-    family:
-      game.family,
-
-    target:
-      game.target,
-
-    actor:
-      game.actor,
-
-    phone:
-      game.phone,
-
-    voteMode:
-      game.voteMode,
-
-    penalty:
-      game.penalty,
-
-    contentPool:
-      game.contentPool,
-
-    flow:
-      [...game.flow],
-
-    screenCount:
-      game.flow.length
-
-  }));
 }
