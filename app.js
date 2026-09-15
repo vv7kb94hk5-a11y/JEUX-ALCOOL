@@ -1,32 +1,38 @@
 /* ============================================================
    SOIRÉE — APP
-   BUILD 08.8
+   BUILD 08.9
    ============================================================
 
-   INTERFACE COMPATIBLE AVEC :
-   - config.js
-   - questions.js
-   - games.js BUILD 08.7
-   - gameFlow.js BUILD 08.7
+   ARCHITECTURE
 
-   OBJECTIF :
-   Un écran = une action claire.
+   PUBLIC AVEC VOTE
+   ACTION → VOTE → RESOLVE
 
-   JEUX PUBLICS :
-   ACTION → VOTE → RÉSULTAT
+   PUBLIC SIMPLE
+   ACTION → SUCCESS_CHECK
+   ou
+   ACTION → RESOLVE
 
-   JEUX SECRETS :
-   TÉLÉPHONE → SECRET → RÉUSSITE ?
+   SECRET
+   PASS_SECRET → SECRET_ACTION → SUCCESS_CHECK
 
-   AUCUNE :
+   MISSION SECRÈTE
+   PASS_SECRET → SECRET_ACTION
+
+   AUCUNE PHASE TECHNIQUE AFFICHÉE :
    - INTRO
    - SELECT_TARGET
    - SELECT_PLAYERS
    - PENALTY
    - RETURN_PHONE
-   - CONFIRMATION DE VOTE
+   - RESULT
+   - NEXT
+   - PLAY
+
    ============================================================ */
 
+
+const APP_VERSION = "08.9";
 
 const app = document.getElementById("app");
 
@@ -67,7 +73,13 @@ const session = {
 
   success: null,
 
-  consequence: null
+  consequence: null,
+
+  timer: null,
+
+  timerRemaining: null,
+
+  actionLocked: false
 };
 
 
@@ -92,13 +104,17 @@ function randomItem(array) {
     return null;
   }
 
-  return array[Math.floor(Math.random() * array.length)];
+  return array[
+    Math.floor(Math.random() * array.length)
+  ];
 }
 
 
 function shuffle(array) {
 
-  return [...array].sort(() => Math.random() - 0.5);
+  return [...array].sort(
+    () => Math.random() - 0.5
+  );
 }
 
 
@@ -108,7 +124,9 @@ function shuffle(array) {
 
 function saveSession() {
 
-  if (!CONFIG.SESSION.SAVE_TO_LOCAL_STORAGE) {
+  if (
+    !CONFIG?.SESSION?.SAVE_TO_LOCAL_STORAGE
+  ) {
     return;
   }
 
@@ -118,15 +136,19 @@ function saveSession() {
       CONFIG.SESSION.STORAGE_KEY,
       JSON.stringify({
 
-        players: session.players,
+        players:
+          session.players,
 
-        intensity: session.intensity,
+        intensity:
+          session.intensity,
 
-        history: session.history
-          .slice(-CONFIG.SESSION.MAX_HISTORY),
+        history:
+          session.history.slice(
+            -CONFIG.SESSION.MAX_HISTORY
+          ),
 
-        playerHistory: session.playerHistory
-          .slice(-20)
+        playerHistory:
+          session.playerHistory.slice(-20)
 
       })
     );
@@ -143,38 +165,63 @@ function saveSession() {
 
 function loadSession() {
 
-  if (!CONFIG.SESSION.SAVE_TO_LOCAL_STORAGE) {
+  if (
+    !CONFIG?.SESSION?.SAVE_TO_LOCAL_STORAGE
+  ) {
     return;
   }
 
   try {
 
     const raw =
-      localStorage.getItem(CONFIG.SESSION.STORAGE_KEY);
+      localStorage.getItem(
+        CONFIG.SESSION.STORAGE_KEY
+      );
 
     if (!raw) {
       return;
     }
 
-    const saved = JSON.parse(raw);
+    const saved =
+      JSON.parse(raw);
 
-    if (Array.isArray(saved.players)) {
-      session.players = saved.players;
+    if (
+      Array.isArray(
+        saved.players
+      )
+    ) {
+
+      session.players =
+        saved.players;
     }
 
     if (
       saved.intensity &&
       CONFIG.INTENSITY[saved.intensity]
     ) {
-      session.intensity = saved.intensity;
+
+      session.intensity =
+        saved.intensity;
     }
 
-    if (Array.isArray(saved.history)) {
-      session.history = saved.history;
+    if (
+      Array.isArray(
+        saved.history
+      )
+    ) {
+
+      session.history =
+        saved.history;
     }
 
-    if (Array.isArray(saved.playerHistory)) {
-      session.playerHistory = saved.playerHistory;
+    if (
+      Array.isArray(
+        saved.playerHistory
+      )
+    ) {
+
+      session.playerHistory =
+        saved.playerHistory;
     }
 
   } catch (error) {
@@ -193,7 +240,10 @@ function loadSession() {
 
 function navigate(screen) {
 
-  session.screen = screen;
+  stopTimer();
+
+  session.screen =
+    screen;
 
   render();
 }
@@ -205,14 +255,16 @@ function navigate(screen) {
 
 function getAvailablePlayers() {
 
+  const limit =
+    CONFIG?.ROTATION?.RECENT_PLAYER_LIMIT ?? 2;
+
   const recent =
-    session.playerHistory.slice(
-      -CONFIG.ROTATION.RECENT_PLAYER_LIMIT
-    );
+    session.playerHistory.slice(-limit);
 
   const available =
     session.players.filter(
-      player => !recent.includes(player)
+      player =>
+        !recent.includes(player)
     );
 
   return shuffle(
@@ -226,10 +278,15 @@ function getAvailablePlayers() {
 function choosePlayer() {
 
   const player =
-    randomItem(getAvailablePlayers());
+    randomItem(
+      getAvailablePlayers()
+    );
 
   if (player) {
-    session.playerHistory.push(player);
+
+    session.playerHistory.push(
+      player
+    );
   }
 
   return player;
@@ -247,13 +304,18 @@ function chooseTwoPlayers() {
   if (pair.length < 2) {
 
     pair =
-      shuffle(session.players).slice(0, 2);
+      shuffle(
+        session.players
+      ).slice(0, 2);
   }
 
   pair.forEach(player => {
 
     if (player) {
-      session.playerHistory.push(player);
+
+      session.playerHistory.push(
+        player
+      );
     }
 
   });
@@ -271,28 +333,32 @@ function chooseGame() {
   let candidates =
     GAMES.filter(game => {
 
-      if (
-        session.players.length <
-        (game.minPlayers ?? CONFIG.PLAYERS.MIN)
-      ) {
-        return false;
-      }
+      const min =
+        game.minPlayers ??
+        CONFIG.PLAYERS.MIN;
+
+      const max =
+        game.maxPlayers ??
+        CONFIG.PLAYERS.MAX;
 
       if (
-        session.players.length >
-        (game.maxPlayers ?? CONFIG.PLAYERS.MAX)
+        session.players.length < min ||
+        session.players.length > max
       ) {
+
         return false;
       }
 
       const cooldown =
-        game.cooldown ?? CONFIG.COOLDOWN.GAME;
+        game.cooldown ??
+        CONFIG.COOLDOWN.GAME;
 
       if (
         session.history
           .slice(-cooldown)
           .includes(game.id)
       ) {
+
         return false;
       }
 
@@ -301,8 +367,8 @@ function chooseGame() {
 
 
   /*
-   * Si tous les jeux sont en cooldown,
-   * on autorise la rotation complète.
+   * Si tous les jeux sont temporairement
+   * exclus, on réautorise les jeux compatibles.
    */
 
   if (!candidates.length) {
@@ -312,23 +378,31 @@ function chooseGame() {
 
         return (
           session.players.length >=
-            (game.minPlayers ?? CONFIG.PLAYERS.MIN) &&
+            (
+              game.minPlayers ??
+              CONFIG.PLAYERS.MIN
+            ) &&
 
           session.players.length <=
-            (game.maxPlayers ?? CONFIG.PLAYERS.MAX)
+            (
+              game.maxPlayers ??
+              CONFIG.PLAYERS.MAX
+            )
         );
-
       });
   }
 
 
   if (!candidates.length) {
+
     return null;
   }
 
 
   const intensity =
-    getIntensityConfig(session.intensity);
+    getIntensityConfig(
+      session.intensity
+    );
 
 
   const recentFamilies =
@@ -336,10 +410,10 @@ function chooseGame() {
       .slice(-2)
       .map(id => {
 
-        const game =
-          GAMES.find(item => item.id === id);
-
-        return game?.family;
+        return GAMES.find(
+          game =>
+            game.id === id
+        )?.family;
 
       })
       .filter(Boolean);
@@ -356,7 +430,8 @@ function chooseGame() {
        */
 
       if (
-        typeof game.intensity === "number"
+        typeof game.intensity ===
+        "number"
       ) {
 
         score -=
@@ -368,12 +443,13 @@ function chooseGame() {
 
 
       /*
-       * Diversité des familles
+       * Diversité
        */
 
       const familyCount =
         recentFamilies.filter(
-          family => family === game.family
+          family =>
+            family === game.family
         ).length;
 
 
@@ -396,7 +472,7 @@ function chooseGame() {
 
 
       /*
-       * Bonus selon intensité
+       * Bonus spécial
        */
 
       if (
@@ -404,7 +480,8 @@ function chooseGame() {
       ) {
 
         score +=
-          10 * intensity.chaosMultiplier;
+          10 *
+          intensity.chaosMultiplier;
       }
 
 
@@ -413,7 +490,8 @@ function chooseGame() {
       ) {
 
         score +=
-          15 * intensity.hotMultiplier;
+          15 *
+          intensity.hotMultiplier;
       }
 
 
@@ -422,8 +500,14 @@ function chooseGame() {
 
 
       return {
+
         game,
-        score: Math.max(1, score)
+
+        score:
+          Math.max(
+            1,
+            score
+          )
       };
 
     });
@@ -431,20 +515,28 @@ function chooseGame() {
 
   const total =
     scored.reduce(
-      (sum, item) => sum + item.score,
+      (sum, item) =>
+        sum + item.score,
       0
     );
 
 
   let roll =
-    Math.random() * total;
+    Math.random() *
+    total;
 
 
-  for (const item of scored) {
+  for (
+    const item of scored
+  ) {
 
-    roll -= item.score;
+    roll -=
+      item.score;
 
-    if (roll <= 0) {
+    if (
+      roll <= 0
+    ) {
+
       return item.game;
     }
   }
@@ -461,7 +553,9 @@ function chooseGame() {
 function getContentForGame(game) {
 
   const pool =
-    QUESTIONS[game.contentPool];
+    QUESTIONS[
+      game.contentPool
+    ];
 
 
   if (
@@ -477,10 +571,6 @@ function getContentForGame(game) {
   }
 
 
-  /*
-   * Les questions HOT respectent l'intensité.
-   */
-
   if (
     game.contentPool === "HOT"
   ) {
@@ -490,14 +580,17 @@ function getContentForGame(game) {
         ? 2
         : 3;
 
-
     const filtered =
-      pool.filter(
-        item =>
-          typeof item?.intensity !== "number" ||
-          item.intensity <= maxIntensity
-      );
+      pool.filter(item => {
 
+        return (
+          typeof item?.intensity !==
+            "number" ||
+
+          item.intensity <=
+            maxIntensity
+        );
+      });
 
     return randomItem(
       filtered.length
@@ -517,75 +610,96 @@ function getContentForGame(game) {
 
 function assignRoles(game) {
 
-  session.currentActor = null;
+  session.currentActor =
+    null;
 
-  session.currentTargets = [];
+  session.currentTargets =
+    [];
 
-  session.currentPair = [];
+  session.currentPair =
+    [];
 
 
-  switch (game.target) {
+  /*
+   * IMPORTANT :
+   *
+   * Les jeux avec VOTE ne reçoivent
+   * jamais une cible automatique.
+   *
+   * Le vote crée la cible.
+   */
+
+  const isVote =
+    game.flow?.includes(
+      FLOW_PHASES.VOTE
+    );
 
 
-    case TARGET_MODES.ONE: {
+  if (!isVote) {
 
-      const player =
-        choosePlayer();
+    switch (
+      game.target
+    ) {
 
-      session.currentActor =
-        player;
+      case TARGET_MODES.ONE: {
 
-      session.currentTargets =
-        player
-          ? [player]
-          : [];
+        const player =
+          choosePlayer();
 
-      break;
+        session.currentActor =
+          player;
+
+        session.currentTargets =
+          player
+            ? [player]
+            : [];
+
+        break;
+      }
+
+
+      case TARGET_MODES.TWO: {
+
+        const pair =
+          chooseTwoPlayers();
+
+        session.currentPair =
+          pair;
+
+        session.currentTargets =
+          [...pair];
+
+        session.currentActor =
+          pair[0] || null;
+
+        break;
+      }
+
+
+      case TARGET_MODES.ALL: {
+
+        session.currentTargets =
+          [...session.players];
+
+        break;
+      }
+
+
+      case TARGET_MODES.NONE:
+      default:
+
+        break;
     }
-
-
-    case TARGET_MODES.TWO: {
-
-      const pair =
-        chooseTwoPlayers();
-
-      session.currentPair =
-        pair;
-
-      session.currentTargets =
-        [...pair];
-
-      session.currentActor =
-        pair[0] || null;
-
-      break;
-    }
-
-
-    case TARGET_MODES.ALL: {
-
-      session.currentTargets =
-        [...session.players];
-
-      break;
-    }
-
-
-    case TARGET_MODES.NONE:
-    default:
-
-      break;
   }
 
 
   /*
-   * Certains jeux définissent explicitement
-   * leur acteur comme TARGET.
+   * Acteur RANDOM
    */
 
   if (
-    game.actor === ACTOR_MODES.RANDOM &&
-    !session.currentActor
+    game.actor ===
+    ACTOR_MODES.RANDOM
   ) {
 
     session.currentActor =
@@ -593,8 +707,13 @@ function assignRoles(game) {
   }
 
 
+  /*
+   * Acteur TARGET
+   */
+
   if (
-    game.actor === ACTOR_MODES.TARGET &&
+    game.actor ===
+      ACTOR_MODES.TARGET &&
     session.currentTargets.length
   ) {
 
@@ -605,16 +724,109 @@ function assignRoles(game) {
 
 
 /* ============================================================
+   SYNCHRONISATION GAME FLOW
+   ============================================================ */
+
+function syncGameFlow() {
+
+  if (
+    typeof GAME_FLOW ===
+    "undefined"
+  ) {
+
+    return;
+  }
+
+
+  if (
+    typeof setGameActor ===
+    "function"
+  ) {
+
+    setGameActor(
+      session.currentActor
+    );
+  }
+
+
+  if (
+    typeof setGameTarget ===
+    "function"
+  ) {
+
+    /*
+     * Pour un vote, la cible sera
+     * définie après le choix.
+     */
+
+    setGameTarget(
+      session.currentTargets[0] ||
+      null
+    );
+  }
+
+
+  if (
+    typeof setParticipants ===
+    "function"
+  ) {
+
+    setParticipants(
+      session.currentPair.length
+        ? session.currentPair
+        : session.players
+    );
+  }
+
+
+  if (
+    typeof setVoters ===
+    "function"
+  ) {
+
+    setVoters(
+      session.players
+    );
+  }
+
+
+  if (
+    typeof setSecretOwner ===
+    "function"
+  ) {
+
+    setSecretOwner(
+      session.currentActor
+    );
+  }
+
+
+  if (
+    typeof setSecretContent ===
+    "function"
+  ) {
+
+    setSecretContent(
+      session.currentContent
+    );
+  }
+}
+
+
+/* ============================================================
    PRÉPARATION DU TOUR
    ============================================================ */
 
 function prepareRound() {
+
+  stopTimer();
 
   const game =
     chooseGame();
 
 
   if (!game) {
+
     return null;
   }
 
@@ -622,16 +834,31 @@ function prepareRound() {
   session.currentGame =
     game;
 
-
   session.currentContent =
     getContentForGame(game);
+
+  session.votes =
+    [];
+
+  session.selectedChoice =
+    null;
+
+  session.success =
+    null;
+
+  session.consequence =
+    null;
+
+  session.actionLocked =
+    false;
 
 
   assignRoles(game);
 
 
   session.currentPhase =
-    game.flow?.[0] || null;
+    game.flow?.[0] ||
+    null;
 
 
   session.round++;
@@ -642,24 +869,18 @@ function prepareRound() {
   );
 
 
-  session.votes = [];
+  if (
+    typeof resetGameVotes ===
+    "function"
+  ) {
 
-  session.selectedChoice = null;
+    resetGameVotes();
+  }
 
-  session.success = null;
-
-  session.consequence = null;
-
-
-  saveSession();
-
-
-  /*
-   * Synchronisation avec le moteur central.
-   */
 
   if (
-    typeof resetGameFlow === "function"
+    typeof resetGameFlow ===
+    "function"
   ) {
 
     resetGameFlow();
@@ -667,67 +888,20 @@ function prepareRound() {
 
 
   if (
-    typeof startGameFlow === "function"
+    typeof startGameFlow ===
+    "function"
   ) {
 
     startGameFlow(
       game,
       session.players
     );
-
   }
 
 
-  if (
-    typeof setCurrentActor === "function"
-  ) {
+  syncGameFlow();
 
-    setCurrentActor(
-      session.currentActor
-    );
-  }
-
-
-  if (
-    typeof setCurrentTarget === "function"
-  ) {
-
-    setCurrentTarget(
-      session.currentTargets[0] || null
-    );
-  }
-
-
-  if (
-    typeof setCurrentPlayers === "function"
-  ) {
-
-    setCurrentPlayers(
-      session.currentPair.length
-        ? session.currentPair
-        : session.players
-    );
-  }
-
-
-  if (
-    typeof setPublicContent === "function"
-  ) {
-
-    setPublicContent(
-      session.currentContent
-    );
-  }
-
-
-  if (
-    typeof setPrivateContent === "function"
-  ) {
-
-    setPrivateContent(
-      session.currentContent
-    );
-  }
+  saveSession();
 
 
   return game;
@@ -739,6 +913,8 @@ function prepareRound() {
    ============================================================ */
 
 function startRound() {
+
+  stopTimer();
 
   if (
     session.players.length <
@@ -770,7 +946,6 @@ function startRound() {
   session.screen =
     "GAME";
 
-
   render();
 }
 
@@ -781,15 +956,28 @@ function startRound() {
 
 function advancePhase() {
 
-  /*
-   * Le moteur central est prioritaire.
-   */
+  if (
+    session.actionLocked
+  ) {
 
-  let next = null;
+    return;
+  }
+
+
+  session.actionLocked =
+    true;
+
+
+  stopTimer();
+
+
+  let next =
+    null;
 
 
   if (
-    typeof nextGamePhase === "function"
+    typeof nextGamePhase ===
+    "function"
   ) {
 
     next =
@@ -797,11 +985,10 @@ function advancePhase() {
   }
 
 
-  /*
-   * Sécurité si le moteur ne retourne rien.
-   */
-
   if (!next) {
+
+    session.actionLocked =
+      false;
 
     finishRound();
 
@@ -813,54 +1000,81 @@ function advancePhase() {
     next;
 
 
-  /*
-   * Synchronisation des données.
-   */
-
   if (
-    typeof GAME_FLOW !== "undefined"
+    typeof GAME_FLOW !==
+    "undefined"
   ) {
 
     if (
-      GAME_FLOW.currentActor
+      GAME_FLOW.actor
     ) {
 
       session.currentActor =
-        GAME_FLOW.currentActor;
+        GAME_FLOW.actor;
     }
 
+
     if (
-      GAME_FLOW.currentTarget &&
-      !session.currentTargets.length
+      GAME_FLOW.target
     ) {
 
-      session.currentTargets = [
-        GAME_FLOW.currentTarget
-      ];
+      session.currentTargets =
+        [
+          GAME_FLOW.target
+        ];
     }
   }
 
+
+  session.actionLocked =
+    false;
 
   render();
 }
 
 
 /* ============================================================
-   FIN DE TOUR
+   FIN DU TOUR
    ============================================================ */
 
 function finishRound() {
 
+  stopTimer();
+
   session.currentPhase =
     null;
-
 
   session.currentContent =
     null;
 
+  session.currentTargets =
+    [];
+
+  session.currentActor =
+    null;
+
+  session.currentPair =
+    [];
+
+  session.votes =
+    [];
+
+  session.selectedChoice =
+    null;
+
+  session.success =
+    null;
+
+  session.consequence =
+    null;
+
+  session.actionLocked =
+    false;
+
 
   if (
-    typeof clearPrivateContent === "function"
+    typeof clearPrivateContent ===
+    "function"
   ) {
 
     clearPrivateContent();
@@ -868,8 +1082,7 @@ function finishRound() {
 
 
   /*
-   * On lance directement le tour suivant.
-   * Pas d'écran "TOUR TERMINÉ".
+   * Tour suivant immédiatement.
    */
 
   startRound();
@@ -882,50 +1095,32 @@ function finishRound() {
 
 function render() {
 
-  if (
-    session.screen === "HOME"
+  switch (
+    session.screen
   ) {
 
-    return renderHome();
+    case "HOME":
+      return renderHome();
+
+    case "PLAYERS":
+      return renderPlayers();
+
+    case "INTENSITY":
+      return renderIntensity();
+
+    case "OPTIONS":
+      return renderOptions();
+
+    case "GAME":
+      return renderGame();
+
+    default:
+
+      session.screen =
+        "HOME";
+
+      return renderHome();
   }
-
-
-  if (
-    session.screen === "PLAYERS"
-  ) {
-
-    return renderPlayers();
-  }
-
-
-  if (
-    session.screen === "INTENSITY"
-  ) {
-
-    return renderIntensity();
-  }
-
-
-  if (
-    session.screen === "OPTIONS"
-  ) {
-
-    return renderOptions();
-  }
-
-
-  if (
-    session.screen === "GAME"
-  ) {
-
-    return renderGame();
-  }
-
-
-  session.screen =
-    "HOME";
-
-  renderHome();
 }
 
 
@@ -1112,9 +1307,7 @@ function openPlayerModal() {
             maxlength="20"
             autocomplete="off"
             placeholder="Prénom"
-            autofocus
           >
-
 
           <div class="modal-actions">
 
@@ -1143,10 +1336,15 @@ function openPlayerModal() {
 
 
   setTimeout(
-    () =>
+    () => {
+
       document
-        .getElementById("player-name")
-        ?.focus(),
+        .getElementById(
+          "player-name"
+        )
+        ?.focus();
+
+    },
     50
   );
 }
@@ -1155,7 +1353,9 @@ function openPlayerModal() {
 function closePlayerModal() {
 
   document
-    .getElementById("player-modal")
+    .getElementById(
+      "player-modal"
+    )
     ?.remove();
 }
 
@@ -1163,7 +1363,6 @@ function closePlayerModal() {
 function confirmAddPlayer(event) {
 
   event.preventDefault();
-
 
   const input =
     document.getElementById(
@@ -1220,7 +1419,6 @@ function confirmAddPlayer(event) {
     name
   );
 
-
   saveSession();
 
   closePlayerModal();
@@ -1235,7 +1433,6 @@ function removePlayer(index) {
     index,
     1
   );
-
 
   saveSession();
 
@@ -1346,13 +1543,12 @@ function selectIntensity(value) {
   if (
     !CONFIG.INTENSITY[value]
   ) {
+
     return;
   }
 
-
   session.intensity =
     value;
-
 
   saveSession();
 
@@ -1411,7 +1607,7 @@ function renderOptions() {
 
 
       <p class="muted">
-        Version BUILD 08.8
+        BUILD ${APP_VERSION}
       </p>
 
     </section>
@@ -1436,24 +1632,29 @@ function clearSavedSession() {
   }
 
 
-  session.players = [];
+  session.players =
+    [];
 
-  session.history = [];
+  session.history =
+    [];
 
-  session.playerHistory = [];
+  session.playerHistory =
+    [];
 
   session.intensity =
     "CLASSIQUE";
 
-  session.round = 0;
+  session.round =
+    0;
 
+  stopTimer();
 
   render();
 }
 
 
 /* ============================================================
-   JEU — ROUTEUR
+   ROUTEUR DU JEU
    ============================================================ */
 
 function renderGame() {
@@ -1463,7 +1664,6 @@ function renderGame() {
 
 
   switch (phase) {
-
 
     case FLOW_PHASES.PASS_SECRET:
 
@@ -1497,12 +1697,6 @@ function renderGame() {
 
     default:
 
-      /*
-       * Sécurité :
-       * aucune ancienne phase ne doit
-       * réapparaître.
-       */
-
       console.warn(
         "Phase inconnue :",
         phase
@@ -1521,10 +1715,6 @@ function renderGame() {
 
 function gameHeader() {
 
-  const game =
-    session.currentGame;
-
-
   return `
 
     <header class="game-header">
@@ -1534,11 +1724,48 @@ function gameHeader() {
       </span>
 
       <span>
-        ${escapeHTML(game?.family || "")}
+        ${escapeHTML(
+          session.currentGame?.family ||
+          ""
+        )}
       </span>
 
     </header>
   `;
+}
+
+
+/* ============================================================
+   EXTRACTION TEXTE
+   ============================================================ */
+
+function contentText(content) {
+
+  if (
+    typeof content ===
+    "string"
+  ) {
+
+    return content;
+  }
+
+
+  if (!content) {
+
+    return "";
+  }
+
+
+  return (
+    content.question ||
+    content.text ||
+    content.prompt ||
+    content.instruction ||
+    content.action ||
+    content.expression ||
+    content.word ||
+    ""
+  );
 }
 
 
@@ -1561,161 +1788,140 @@ function getPublicContentHTML() {
   ) {
 
     return `
+
       <div class="main-text">
         À vous de jouer.
       </div>
+
     `;
   }
 
 
-  switch (game.contentPool) {
-
+  switch (
+    game.contentPool
+  ) {
 
     case "CATEGORY":
 
       return `
+
         <div class="eyebrow">
           CATÉGORIE
         </div>
 
         <div class="main-text">
-          ${escapeHTML(content)}
+          ${escapeHTML(
+            contentText(content)
+          )}
         </div>
 
         <p>
           Chacun répond à son tour.
         </p>
+
       `;
 
 
     case "WORD":
 
       return `
+
         <div class="eyebrow">
           MOT
         </div>
 
         <div class="main-text">
-          ${escapeHTML(content)}
+          ${escapeHTML(
+            contentText(content)
+          )}
         </div>
 
-        <p>
-          À vous de jouer.
-        </p>
-      `;
-
-
-    case "VOTE":
-
-    case "MAJORITY":
-
-    case "TARGET":
-
-    case "SUSPECT":
-
-      return `
-        <div class="main-text">
-          ${escapeHTML(content)}
-        </div>
       `;
 
 
     case "KNOWLEDGE":
 
       return `
+
         <div class="main-text">
           ${escapeHTML(
-            content.question ||
-            content.text ||
-            content
+            contentText(content)
           )}
         </div>
+
       `;
 
 
     case "HOT":
 
       return `
+
         <div class="eyebrow">
           QUESTION CHAUDE
         </div>
 
         <div class="main-text">
           ${escapeHTML(
-            content.text ||
-            content
+            contentText(content)
           )}
         </div>
+
       `;
 
 
     case "CHOICE":
 
-      return `
-        <div class="main-text">
-          ${escapeHTML(
-            content.question ||
-            content.text ||
-            content
-          )}
-        </div>
-      `;
+      return renderChoiceContent(
+        content
+      );
 
 
     case "GROUP_TRUTH":
 
       return `
-        <div class="main-text">
-          ${escapeHTML(content)}
-        </div>
-      `;
 
-
-    case "STATEMENTS":
-
-      return `
         <div class="main-text">
           ${escapeHTML(
-            content.instruction ||
-            content.text ||
-            ""
+            contentText(content)
           )}
         </div>
+
       `;
 
 
-    case "BLUFF":
+    case "IMPRO":
 
       return `
-        <div class="main-text">
-          ${escapeHTML(content)}
+
+        <div class="eyebrow">
+          MISSION
         </div>
+
+        <div class="main-text">
+          ${escapeHTML(
+            contentText(content)
+          )}
+        </div>
+
       `;
 
 
     /*
-     * IMPORTANT :
-     * aucun contenu secret n'est affiché
-     * sur un écran public.
+     * Les contenus secrets ne doivent
+     * JAMAIS apparaître ici.
      */
 
     case "FORBIDDEN_WORD":
-
     case "TRAP_WORD":
-
     case "MISSION":
-
     case "TRAP_PROMPT":
-
     case "DESCRIPTION":
-
     case "MIME":
-
     case "GUESS_WORD":
-
     case "EXPRESSION":
 
       return `
+
         <div class="eyebrow">
           DÉFI SECRET
         </div>
@@ -1731,32 +1937,95 @@ function getPublicContentHTML() {
           Le joueur désigné connaît
           son défi.
         </p>
-      `;
 
-
-    case "IMPRO":
-
-      return `
-        <div class="eyebrow">
-          MISSION
-        </div>
-
-        <div class="main-text">
-          ${escapeHTML(
-            content
-          )}
-        </div>
       `;
 
 
     default:
 
       return `
+
         <div class="main-text">
-          À vous de jouer.
+          ${escapeHTML(
+            contentText(content)
+          )}
         </div>
+
       `;
   }
+}
+
+
+/* ============================================================
+   CHOIX IMPOSSIBLE
+   ============================================================ */
+
+function getChoices(content) {
+
+  if (!content) {
+    return [];
+  }
+
+
+  if (
+    Array.isArray(
+      content.choices
+    )
+  ) {
+
+    return content.choices;
+  }
+
+
+  if (
+    Array.isArray(
+      content.options
+    )
+  ) {
+
+    return content.options;
+  }
+
+
+  return [];
+}
+
+
+function renderChoiceContent(content) {
+
+  const question =
+    content?.question ||
+    content?.text ||
+    "Choisissez.";
+
+
+  const choices =
+    getChoices(content);
+
+
+  if (!choices.length) {
+
+    return `
+
+      <div class="main-text">
+        ${escapeHTML(question)}
+      </div>
+
+    `;
+  }
+
+
+  return `
+
+    <div class="eyebrow">
+      CHOIX IMPOSSIBLE
+    </div>
+
+    <div class="main-text">
+      ${escapeHTML(question)}
+    </div>
+
+  `;
 }
 
 
@@ -1770,43 +2039,65 @@ function renderAction() {
     session.currentGame;
 
 
-  const target =
-    session.currentTargets;
-
-
-  let targetHTML = "";
-
-
-  if (target.length) {
-
-    targetHTML = `
-
-      <div class="target-line">
-
-        ${target
-          .map(escapeHTML)
-          .join(" • ")}
-
-      </div>
-    `;
-  }
-
-
-  /*
-   * Pour un vote, le premier écran
-   * doit déjà être le défi.
-   */
-
   const isVote =
     game?.flow?.includes(
       FLOW_PHASES.VOTE
     );
 
 
-  const buttonLabel =
-    isVote
-      ? "VOTER"
-      : "TERMINÉ";
+  const target =
+    session.currentTargets;
+
+
+  const targetHTML =
+    target.length
+      ? `
+
+        <div class="target-line">
+
+          ${target
+            .map(
+              escapeHTML
+            )
+            .join(" • ")}
+
+        </div>
+
+      `
+      : "";
+
+
+  /*
+   * G021 possède ses propres boutons.
+   */
+
+  if (
+    game?.contentPool ===
+    "CHOICE"
+  ) {
+
+    return renderChoiceAction();
+  }
+
+
+  /*
+   * G006/G007/G009 utilisent
+   * le timer.
+   */
+
+  const timerHTML =
+    game?.timer
+      ? `
+
+        <div
+          class="game-timer"
+          id="game-timer"
+        >
+          ${game.timer}
+        </div>
+
+      `
+      : "";
 
 
   app.innerHTML = `
@@ -1816,6 +2107,8 @@ function renderAction() {
       ${gameHeader()}
 
       ${targetHTML}
+
+      ${timerHTML}
 
 
       <div class="game-card play-card">
@@ -1837,13 +2130,17 @@ function renderAction() {
         ${
           isVote
             ? `
+
               <div class="main-text">
+
                 ${escapeHTML(
-                  session.currentContent?.question ||
-                  session.currentContent?.text ||
-                  session.currentContent
+                  contentText(
+                    session.currentContent
+                  )
                 )}
+
               </div>
+
             `
             : getPublicContentHTML()
         }
@@ -1855,11 +2152,144 @@ function renderAction() {
         class="primary-btn"
         onclick="advancePhase()"
       >
-        ${buttonLabel}
+
+        ${
+          isVote
+            ? "VOTER"
+            : "TERMINÉ"
+        }
+
       </button>
 
     </section>
   `;
+
+
+  if (
+    game?.timer
+  ) {
+
+    startTimer(
+      game.timer
+    );
+  }
+}
+
+
+/* ============================================================
+   CHOIX INTERACTIF
+   ============================================================ */
+
+function renderChoiceAction() {
+
+  const content =
+    session.currentContent;
+
+  const choices =
+    getChoices(content);
+
+
+  app.innerHTML = `
+
+    <section class="screen game-screen">
+
+      ${gameHeader()}
+
+
+      <div class="game-card play-card">
+
+        <div class="eyebrow">
+          CHOIX IMPOSSIBLE
+        </div>
+
+        <div class="main-text">
+
+          ${escapeHTML(
+            content?.question ||
+            content?.text ||
+            "Choisissez."
+          )}
+
+        </div>
+
+      </div>
+
+
+      <div class="choice-grid">
+
+        ${
+          choices.length
+            ? choices
+                .map(
+                  (choice, index) => `
+
+                    <button
+                      class="choice-btn"
+                      onclick="selectChoice(${index})"
+                    >
+                      ${escapeHTML(
+                        typeof choice ===
+                        "string"
+                          ? choice
+                          : (
+                              choice.text ||
+                              choice.label ||
+                              choice.value ||
+                              ""
+                            )
+                      )}
+                    </button>
+
+                  `
+                )
+                .join("")
+            : `
+
+                <button
+                  class="primary-btn"
+                  onclick="advancePhase()"
+                >
+                  TERMINÉ
+                </button>
+
+              `
+        }
+
+      </div>
+
+    </section>
+  `;
+}
+
+
+function selectChoice(index) {
+
+  const choices =
+    getChoices(
+      session.currentContent
+    );
+
+  const choice =
+    choices[index];
+
+
+  if (
+    choice == null
+  ) {
+
+    return;
+  }
+
+
+  session.selectedChoice =
+    choice;
+
+
+  /*
+   * Aucun écran de confirmation.
+   */
+
+  advancePhase();
 }
 
 
@@ -1886,11 +2316,14 @@ function renderPassSecret() {
 
 
         <h1>
+
           Donne le téléphone à<br>
+
           ${escapeHTML(
             session.currentActor ||
             "la personne désignée"
           )}
+
         </h1>
 
 
@@ -1930,41 +2363,50 @@ function getPrivateContentHTML() {
   if (!content) {
 
     return `
+
       <p>
         Information secrète indisponible.
       </p>
+
     `;
   }
 
 
   switch (pool) {
 
-
     case "FORBIDDEN_WORD":
-
     case "TRAP_WORD":
 
       return `
 
         <div class="secret-value">
+
           ${escapeHTML(
-            content.word || ""
+            content.word ||
+            content.text ||
+            ""
           )}
+
         </div>
 
         ${
-          Array.isArray(content.forbidden) &&
+          Array.isArray(
+            content.forbidden
+          ) &&
           content.forbidden.length
             ? `
+
               <p>
                 À éviter aussi :
                 ${escapeHTML(
                   content.forbidden.join(", ")
                 )}
               </p>
+
             `
             : ""
         }
+
       `;
 
 
@@ -1973,23 +2415,29 @@ function getPrivateContentHTML() {
       return `
 
         <div class="secret-value">
+
           ${escapeHTML(
-            content.word || ""
+            content.word ||
+            ""
           )}
+
         </div>
 
         ${
           content.hint
             ? `
+
               <p>
                 Indice :
                 ${escapeHTML(
                   content.hint
                 )}
               </p>
+
             `
             : ""
         }
+
       `;
 
 
@@ -1998,22 +2446,28 @@ function getPrivateContentHTML() {
       return `
 
         <div class="secret-value">
+
           ${escapeHTML(
-            content.word || ""
+            content.word ||
+            ""
           )}
+
         </div>
 
         ${
           content.rule
             ? `
+
               <p>
                 ${escapeHTML(
                   content.rule
                 )}
               </p>
+
             `
             : ""
         }
+
       `;
 
 
@@ -2022,44 +2476,126 @@ function getPrivateContentHTML() {
       return `
 
         <div class="secret-value">
+
           ${escapeHTML(
             content.instruction ||
+            content.text ||
             ""
           )}
+
         </div>
 
         ${
           content.rule
             ? `
+
               <p>
                 ${escapeHTML(
                   content.rule
                 )}
               </p>
+
             `
             : ""
         }
+
+      `;
+
+
+    case "MISSION":
+
+      return `
+
+        <div class="secret-value">
+
+          ${escapeHTML(
+            content.mission ||
+            content.text ||
+            content.action ||
+            content
+          )}
+
+        </div>
+
+      `;
+
+
+    case "TRAP_PROMPT":
+
+      return `
+
+        <div class="secret-value">
+
+          ${escapeHTML(
+            content.prompt ||
+            content.text ||
+            content.action ||
+            content
+          )}
+
+        </div>
+
+      `;
+
+
+    case "MIME":
+
+      return `
+
+        <div class="secret-value">
+
+          ${escapeHTML(
+            content.action ||
+            content.text ||
+            content
+          )}
+
+        </div>
+
+      `;
+
+
+    case "EXPRESSION":
+
+      return `
+
+        <div class="secret-value">
+
+          ${escapeHTML(
+            content.expression ||
+            content.text ||
+            content
+          )}
+
+        </div>
+
       `;
 
 
     default: {
 
       const value =
-        typeof content === "string"
+        typeof content ===
+        "string"
           ? content
           : (
               content.expression ||
               content.word ||
               content.text ||
               content.instruction ||
+              content.mission ||
               ""
             );
 
 
       return `
+
         <div class="secret-value">
+
           ${escapeHTML(value)}
+
         </div>
+
       `;
     }
   }
@@ -2068,10 +2604,6 @@ function getPrivateContentHTML() {
 
 function renderSecretAction() {
 
-  const game =
-    session.currentGame;
-
-
   app.innerHTML = `
 
     <section class="screen private-screen">
@@ -2079,6 +2611,7 @@ function renderSecretAction() {
       <div class="private-warning">
 
         SECRET —
+
         ${escapeHTML(
           session.currentActor ||
           ""
@@ -2130,11 +2663,6 @@ function secretActionDone() {
   }
 
 
-  /*
-   * La mission secrète continue
-   * sans écran intermédiaire.
-   */
-
   advancePhase();
 }
 
@@ -2148,10 +2676,8 @@ function renderVote() {
   const players =
     session.players;
 
-
   const content =
     session.currentContent;
-
 
   const question =
     content?.question ||
@@ -2199,6 +2725,7 @@ function renderVote() {
                 >
                   ${escapeHTML(player)}
                 </button>
+
               `
             )
             .join("")
@@ -2212,10 +2739,18 @@ function renderVote() {
 
 
 /* ============================================================
-   VOTE — AUCUNE CONFIRMATION
+   SÉLECTION VOTE
    ============================================================ */
 
 function selectVote(index) {
+
+  if (
+    session.actionLocked
+  ) {
+
+    return;
+  }
+
 
   const player =
     session.players[index];
@@ -2226,24 +2761,78 @@ function selectVote(index) {
   }
 
 
+  session.actionLocked =
+    true;
+
+
   session.votes = [
     player
   ];
 
 
   /*
-   * Le vote est immédiatement validé.
-   * Aucun écran CONFIRMER / CHANGER.
+   * Le vote devient immédiatement
+   * la cible du tour.
    */
 
+  session.currentTargets =
+    [player];
+
+
+  session.currentActor =
+    player;
+
+
   if (
-    typeof setVotes === "function"
+    typeof resetGameVotes ===
+    "function"
   ) {
 
-    setVotes(
-      session.votes
+    resetGameVotes();
+  }
+
+
+  if (
+    typeof addGameVote ===
+    "function"
+  ) {
+
+    /*
+     * Vote collectif représenté
+     * par le groupe.
+     */
+
+    addGameVote(
+      "__GROUP__",
+      player
     );
   }
+
+
+  if (
+    typeof setGameTarget ===
+    "function"
+  ) {
+
+    setGameTarget(
+      player
+    );
+  }
+
+
+  if (
+    typeof setGameWinner ===
+    "function"
+  ) {
+
+    setGameWinner(
+      player
+    );
+  }
+
+
+  session.actionLocked =
+    false;
 
 
   advancePhase();
@@ -2260,11 +2849,6 @@ function renderResolve() {
     session.currentGame;
 
 
-  /*
-   * Pour les votes :
-   * afficher le résultat directement.
-   */
-
   if (
     game?.flow?.includes(
       FLOW_PHASES.VOTE
@@ -2275,9 +2859,14 @@ function renderResolve() {
   }
 
 
-  /*
-   * Pour les jeux de groupe simples.
-   */
+  if (
+    game?.contentPool ===
+    "CHOICE"
+  ) {
+
+    return renderChoiceResult();
+  }
+
 
   if (
     game?.target ===
@@ -2288,32 +2877,31 @@ function renderResolve() {
   }
 
 
-  /*
-   * Pour les actions simples.
-   */
-
   return renderSimpleResult();
 }
 
 
 /* ============================================================
-   RÉSULTAT DU VOTE
+   RÉSULTAT VOTE
    ============================================================ */
 
 function renderVoteResult() {
 
-  const vote =
-    session.votes[0] || null;
-
-
   const target =
-    session.currentTargets[0] || null;
+    session.currentTargets[0] ||
+    session.votes[0] ||
+    null;
+
+
+  if (target) {
+
+    session.currentTargets =
+      [target];
+  }
 
 
   const consequence =
-    vote
-      ? getConsequence()
-      : null;
+    getConsequence();
 
 
   session.consequence =
@@ -2333,7 +2921,6 @@ function renderVoteResult() {
 
         <h1>
           ${escapeHTML(
-            vote ||
             target ||
             "Vote terminé"
           )}
@@ -2343,12 +2930,14 @@ function renderVoteResult() {
         ${
           target
             ? `
+
               <p>
                 Cible du tour :
                 <strong>
                   ${escapeHTML(target)}
                 </strong>
               </p>
+
             `
             : ""
         }
@@ -2357,12 +2946,73 @@ function renderVoteResult() {
         ${
           consequence
             ? `
+
               <div class="consequence">
-                ${escapeHTML(consequence)}
+                ${escapeHTML(
+                  consequence
+                )}
               </div>
+
             `
             : ""
         }
+
+      </div>
+
+
+      <button
+        class="primary-btn"
+        onclick="finishRound()"
+      >
+        C'EST FAIT
+      </button>
+
+    </section>
+  `;
+}
+
+
+/* ============================================================
+   RÉSULTAT CHOIX
+   ============================================================ */
+
+function renderChoiceResult() {
+
+  const choice =
+    session.selectedChoice;
+
+
+  const text =
+    typeof choice ===
+    "string"
+      ? choice
+      : (
+          choice?.text ||
+          choice?.label ||
+          choice?.value ||
+          "Choix effectué."
+        );
+
+
+  app.innerHTML = `
+
+    <section class="screen result-screen">
+
+      <div class="game-card result-card">
+
+        <div class="eyebrow">
+          CHOIX
+        </div>
+
+
+        <h1>
+          ${escapeHTML(text)}
+        </h1>
+
+
+        <p>
+          Le groupe a choisi.
+        </p>
 
       </div>
 
@@ -2453,7 +3103,7 @@ function renderSimpleResult() {
         class="primary-btn"
         onclick="finishRound()"
       >
-        TOUR SUIVANT
+        C'EST FAIT
       </button>
 
     </section>
@@ -2526,11 +3176,35 @@ function renderSuccessCheck() {
 
 function resolveSuccess(success) {
 
+  if (
+    session.actionLocked
+  ) {
+
+    return;
+  }
+
+
+  session.actionLocked =
+    true;
+
   session.success =
     Boolean(success);
 
 
-  if (success) {
+  if (
+    typeof setGameSuccess ===
+    "function"
+  ) {
+
+    setGameSuccess(
+      session.success
+    );
+  }
+
+
+  if (
+    success
+  ) {
 
     session.consequence =
       null;
@@ -2540,6 +3214,10 @@ function resolveSuccess(success) {
     session.consequence =
       getConsequence();
   }
+
+
+  session.actionLocked =
+    false;
 
 
   renderSuccessResult();
@@ -2565,20 +3243,24 @@ function renderSuccessResult() {
       <div class="game-card result-card">
 
         <div class="eyebrow">
+
           ${
             session.success
               ? "RÉUSSI"
               : "ÉCHEC"
           }
+
         </div>
 
 
         <h1>
+
           ${
             session.success
               ? "Bien joué."
               : "Raté."
           }
+
         </h1>
 
 
@@ -2590,16 +3272,20 @@ function renderSuccessResult() {
         ${
           consequence
             ? `
+
               <div class="consequence">
                 ${escapeHTML(
                   consequence
                 )}
               </div>
+
             `
             : `
+
               <p>
                 Aucun gage.
               </p>
+
             `
         }
 
@@ -2624,10 +3310,6 @@ function renderSuccessResult() {
 
 function getConsequence() {
 
-  /*
-   * Le gage reste court et optionnel.
-   */
-
   return (
     CONFIG.PENALTIES?.DEFAULT ||
     "1 gorgée ou une alternative sans alcool"
@@ -2636,15 +3318,114 @@ function getConsequence() {
 
 
 /* ============================================================
-   DEBUG
+   TIMER
+   ============================================================ */
+
+function startTimer(seconds) {
+
+  stopTimer();
+
+
+  session.timerRemaining =
+    seconds;
+
+
+  updateTimerUI();
+
+
+  session.timer =
+    setInterval(
+      () => {
+
+        session.timerRemaining--;
+
+        updateTimerUI();
+
+
+        if (
+          session.timerRemaining <= 0
+        ) {
+
+          stopTimer();
+
+          timerExpired();
+        }
+
+      },
+      1000
+    );
+}
+
+
+function updateTimerUI() {
+
+  const element =
+    document.getElementById(
+      "game-timer"
+    );
+
+
+  if (!element) {
+    return;
+  }
+
+
+  element.textContent =
+    session.timerRemaining;
+}
+
+
+function stopTimer() {
+
+  if (
+    session.timer
+  ) {
+
+    clearInterval(
+      session.timer
+    );
+  }
+
+
+  session.timer =
+    null;
+
+  session.timerRemaining =
+    null;
+}
+
+
+function timerExpired() {
+
+  /*
+   * Le temps est écoulé.
+   * On envoie directement vers
+   * la résolution du défi.
+   */
+
+  if (
+    session.currentPhase ===
+    FLOW_PHASES.ACTION
+  ) {
+
+    advancePhase();
+  }
+}
+
+
+/* ============================================================
+   DEBUG / VALIDATION
    ============================================================ */
 
 function validateApplication() {
 
-  const errors = [];
+  const errors =
+    [];
 
 
-  if (!Array.isArray(GAMES)) {
+  if (
+    !Array.isArray(GAMES)
+  ) {
 
     errors.push(
       "GAMES n'est pas disponible."
@@ -2699,7 +3480,7 @@ function validateApplication() {
 
 
   console.log(
-    `SOIRÉE BUILD 08.8 — ${GAMES.length} jeux chargés.`
+    `SOIRÉE BUILD ${APP_VERSION} — ${GAMES.length} jeux chargés.`
   );
 
 
@@ -2743,7 +3524,9 @@ function showToast(message) {
 
 
   const element =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
 
 
   element.className =
@@ -2760,7 +3543,8 @@ function showToast(message) {
 
 
   setTimeout(
-    () => element.remove(),
+    () =>
+      element.remove(),
     2200
   );
 }
