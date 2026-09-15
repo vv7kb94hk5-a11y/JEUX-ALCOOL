@@ -1,36 +1,31 @@
 /* ============================================================
    SOIRÉE — APPLICATION ENGINE
-   BUILD 08.6
+   BUILD 08.7
    ============================================================
 
-   OBJECTIF
-   --------
-   Un jeu doit être rapide à comprendre et rapide à jouer.
+   ARCHITECTURE FINALE
 
-   NOUVEAU FLOW :
+   JEU PUBLIC AVEC VOTE
+   ACTION → VOTE → RÉSOLUTION
 
-   JEU NORMAL
-   ──────────
-   ACTION
-      ↓
-   RÉSOLUTION
+   JEU PUBLIC AVEC RÉUSSITE
+   ACTION → RÉUSSOLUTION
 
    JEU SECRET
-   ──────────
-   PASSE LE TÉLÉPHONE
-      ↓
-   SECRET + CONSIGNE
-      ↓
-   RÉUSSITE ?
+   PASSE LE TÉLÉPHONE → SECRET → RÉUSSITE ?
 
-   IMPORTANT
-   ---------
-   PENALTY n'est jamais un écran supplémentaire.
-   La conséquence apparaît dans l'écran de résolution.
+   MISSION SECRÈTE
+   PASSE LE TÉLÉPHONE → SECRET
 
-   RETURN_PHONE est supprimé.
-   RESULT est supprimé.
-   NEXT est supprimé.
+   RÈGLES :
+   - Aucun INTRO supplémentaire
+   - Aucun SELECT_TARGET visible
+   - Aucun RETURN_PHONE
+   - Aucun RESULT technique
+   - Aucun PENALTY comme écran
+   - Aucun NEXT comme écran
+   - Une action principale par écran
+   - Le résultat et la conséquence sont réunis
    ============================================================ */
 
 
@@ -58,29 +53,32 @@ const APP = {
 
   currentPlayers: [],
 
-  selectedPlayers: [],
+  selectedChoice: null,
 
   votes: {},
 
-  result: null,
+  voteTarget: null,
 
   success: null,
 
   consequence: null,
 
+  phaseIndex: 0,
+
   timer: null,
 
   timerRemaining: 0,
 
-  sessionStarted: false,
-
   history: [],
-
-  playerHistory: {},
 
   recentFamilies: [],
 
+  playerHistory: [],
+
+  sessionStarted: false,
+
   toastTimer: null
+
 };
 
 
@@ -104,6 +102,7 @@ function initApp() {
     "beforeunload",
     saveSession
   );
+
 }
 
 
@@ -122,31 +121,26 @@ function saveSession() {
       return;
     }
 
-    const data = {
-
-      players:
-        APP.players,
-
-      intensity:
-        APP.intensity,
-
-      round:
-        APP.round,
-
-      history:
-        APP.history.slice(-30),
-
-      playerHistory:
-        APP.playerHistory,
-
-      recentFamilies:
-        APP.recentFamilies
-
-    };
-
     localStorage.setItem(
       CONFIG.SESSION.STORAGE_KEY,
-      JSON.stringify(data)
+      JSON.stringify({
+
+        players:
+          APP.players,
+
+        intensity:
+          APP.intensity,
+
+        history:
+          APP.history.slice(-30),
+
+        recentFamilies:
+          APP.recentFamilies.slice(-3),
+
+        playerHistory:
+          APP.playerHistory.slice(-20)
+
+      })
     );
 
   } catch (error) {
@@ -155,7 +149,9 @@ function saveSession() {
       "Impossible de sauvegarder la session.",
       error
     );
+
   }
+
 }
 
 
@@ -185,27 +181,34 @@ function loadSession() {
     if (
       Array.isArray(data.players)
     ) {
+
       APP.players =
-        data.players;
+        data.players
+          .filter(Boolean)
+          .slice(0, 12);
+
     }
 
-    if (data.intensity) {
+    if (
+      data.intensity &&
+      (
+        typeof CONFIG.INTENSITY === "undefined" ||
+        CONFIG.INTENSITY[data.intensity]
+      )
+    ) {
 
       APP.intensity =
         data.intensity;
+
     }
 
     if (
       Array.isArray(data.history)
     ) {
+
       APP.history =
-        data.history;
-    }
+        data.history.slice(-30);
 
-    if (data.playerHistory) {
-
-      APP.playerHistory =
-        data.playerHistory;
     }
 
     if (
@@ -213,7 +216,17 @@ function loadSession() {
     ) {
 
       APP.recentFamilies =
-        data.recentFamilies;
+        data.recentFamilies.slice(-3);
+
+    }
+
+    if (
+      Array.isArray(data.playerHistory)
+    ) {
+
+      APP.playerHistory =
+        data.playerHistory.slice(-20);
+
     }
 
   } catch (error) {
@@ -222,7 +235,9 @@ function loadSession() {
       "Session invalide.",
       error
     );
+
   }
+
 }
 
 
@@ -237,6 +252,7 @@ function clearSession() {
       localStorage.removeItem(
         CONFIG.SESSION.STORAGE_KEY
       );
+
     }
 
   } catch (error) {}
@@ -245,11 +261,14 @@ function clearSession() {
 
   APP.history = [];
 
-  APP.playerHistory = {};
-
   APP.recentFamilies = [];
 
+  APP.playerHistory = [];
+
   APP.round = 0;
+
+  resetCurrentTurn();
+
 }
 
 
@@ -265,6 +284,7 @@ function escapeHTML(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+
 }
 
 
@@ -274,7 +294,9 @@ function randomItem(array) {
     !Array.isArray(array) ||
     !array.length
   ) {
+
     return null;
+
   }
 
   return array[
@@ -282,6 +304,7 @@ function randomItem(array) {
       Math.random() * array.length
     )
   ];
+
 }
 
 
@@ -310,13 +333,15 @@ function shuffle(array) {
       result[j],
       result[i]
     ];
+
   }
 
   return result;
+
 }
 
 
-function getRandomPlayer(exclude = []) {
+function getAvailablePlayers(exclude = []) {
 
   const blocked =
     new Set(
@@ -325,15 +350,83 @@ function getRandomPlayer(exclude = []) {
         : [exclude]
     );
 
-  const available =
+  let available =
     APP.players.filter(
       player =>
         !blocked.has(player)
     );
 
-  return randomItem(
+  const recent =
+    APP.playerHistory.slice(-3);
+
+  const preferred =
+    available.filter(
+      player =>
+        !recent.includes(player)
+    );
+
+  if (preferred.length) {
+
+    available =
+      preferred;
+
+  }
+
+  return shuffle(
     available
   );
+
+}
+
+
+function choosePlayer(exclude = []) {
+
+  const player =
+    randomItem(
+      getAvailablePlayers(
+        exclude
+      )
+    );
+
+  if (player) {
+
+    APP.playerHistory.push(
+      player
+    );
+
+    APP.playerHistory =
+      APP.playerHistory.slice(-20);
+
+  }
+
+  return player;
+
+}
+
+
+function chooseTwoPlayers() {
+
+  const players =
+    getAvailablePlayers();
+
+  const pair =
+    players.slice(0, 2);
+
+  pair.forEach(
+    player => {
+
+      APP.playerHistory.push(
+        player
+      );
+
+    }
+  );
+
+  APP.playerHistory =
+    APP.playerHistory.slice(-20);
+
+  return pair;
+
 }
 
 
@@ -346,9 +439,8 @@ function setScreen(screen) {
   APP.screen =
     screen;
 
-  saveSession();
-
   render();
+
 }
 
 
@@ -362,10 +454,13 @@ function goHome() {
     "HOME";
 
   render();
+
 }
 
 
 function resetCurrentTurn() {
+
+  stopTimer();
 
   APP.currentGame =
     null;
@@ -382,13 +477,13 @@ function resetCurrentTurn() {
   APP.currentPlayers =
     [];
 
-  APP.selectedPlayers =
-    [];
+  APP.selectedChoice =
+    null;
 
   APP.votes =
     {};
 
-  APP.result =
+  APP.voteTarget =
     null;
 
   APP.success =
@@ -397,13 +492,9 @@ function resetCurrentTurn() {
   APP.consequence =
     null;
 
-  if (
-    typeof resetGameFlow ===
-    "function"
-  ) {
+  APP.phaseIndex =
+    0;
 
-    resetGameFlow();
-  }
 }
 
 
@@ -421,7 +512,6 @@ function render() {
   if (!root) {
     return;
   }
-
 
   switch (APP.screen) {
 
@@ -445,30 +535,6 @@ function render() {
 
       root.innerHTML =
         renderIntensity();
-
-      break;
-
-
-    case "GAME":
-
-      root.innerHTML =
-        renderGame();
-
-      break;
-
-
-    case "PASS_SECRET":
-
-      root.innerHTML =
-        renderPassSecret();
-
-      break;
-
-
-    case "SECRET_ACTION":
-
-      root.innerHTML =
-        renderSecretAction();
 
       break;
 
@@ -497,12 +563,29 @@ function render() {
       break;
 
 
+    case "PASS_SECRET":
+
+      root.innerHTML =
+        renderPassSecret();
+
+      break;
+
+
+    case "SECRET_ACTION":
+
+      root.innerHTML =
+        renderSecretAction();
+
+      break;
+
+
     default:
 
       root.innerHTML =
         renderHome();
 
   }
+
 }
 
 
@@ -514,49 +597,42 @@ function renderHome() {
 
   return `
 
-    <section class="screen home-screen">
+    <section class="home">
 
-      <div class="screen-inner">
-
-        <div class="screen-main">
-
-          <p class="eyebrow">
-            PARTY GAME
-          </p>
-
-          <h1 class="logo">
-            SOIRÉE
-          </h1>
-
-          <p class="subtitle">
-            Des jeux rapides, du bluff,
-            des défis et des secrets.
-          </p>
-
-        </div>
-
-        <div class="screen-footer">
-
-          <button
-            class="primary-button"
-            onclick="openPlayers()"
-          >
-            LANCER LA SOIRÉE
-          </button>
-
-        </div>
-
+      <div class="logo">
+        SOIRÉE
       </div>
+
+      <p class="subtitle">
+        PARTY GAME
+      </p>
+
+      <button
+        class="primary-btn"
+        onclick="openPlayers()"
+      >
+        LANCER LA SOIRÉE
+      </button>
+
+      ${
+        APP.players.length >= 3
+          ? `
+            <button
+              class="secondary-btn"
+              onclick="resumeSession()"
+            >
+              REPRENDRE LA SOIRÉE
+            </button>
+          `
+          : ""
+      }
 
     </section>
 
   `;
+
 }
 
-
-/* ============================================================
-   JOUEURS
-   ============================================================ */
 
 function openPlayers() {
 
@@ -564,8 +640,33 @@ function openPlayers() {
     "PLAYERS";
 
   render();
+
 }
 
+
+function resumeSession() {
+
+  if (
+    APP.players.length < 3
+  ) {
+
+    openPlayers();
+
+    return;
+
+  }
+
+  APP.sessionStarted =
+    true;
+
+  startNextRound();
+
+}
+
+
+/* ============================================================
+   JOUEURS
+   ============================================================ */
 
 function renderPlayers() {
 
@@ -587,7 +688,7 @@ function renderPlayers() {
               >
 
               <button
-                class="remove-player"
+                type="button"
                 onclick="removePlayer(${index})"
               >
                 ×
@@ -599,84 +700,62 @@ function renderPlayers() {
         ).join("")
 
       : `
-
           <div class="empty-state">
-            Ajoute au moins 3 joueurs.
+            Ajoute les joueurs de la soirée.
           </div>
-
         `;
 
 
   return `
 
-    <section class="screen">
+    <section class="players-screen">
 
-      <div class="screen-inner">
+      <header class="screen-header">
 
-        <header class="screen-header">
+        <button
+          class="back-btn"
+          onclick="goHome()"
+        >
+          ‹
+        </button>
 
-          <button
-            class="back-button"
-            onclick="goHome()"
-          >
-            ‹
-          </button>
-
-          <span class="muted">
-            ${APP.players.length}/12
-          </span>
-
-        </header>
-
-
-        <div class="screen-main">
-
-          <p class="eyebrow">
-            ÉTAPE 1
-          </p>
-
-          <h1 class="title">
-            Qui joue ?
-          </h1>
-
-          <p class="subtitle">
-            Entrez les prénoms des joueurs.
-          </p>
-
-
-          <div class="setup mt-4">
-
-            ${rows}
-
-
-            <button
-              class="secondary-button"
-              onclick="addPlayer()"
-            >
-              + AJOUTER UN JOUEUR
-            </button>
-
-          </div>
-
+        <div>
+          Joueurs
         </div>
 
+        <span class="players-count">
+          ${APP.players.length}/12
+        </span>
 
-        <div class="screen-footer">
+      </header>
 
-          <button
-            class="primary-button"
-            onclick="validatePlayers()"
-          >
-            CONTINUER
-          </button>
 
-        </div>
+      <div class="player-list">
+
+        ${rows}
 
       </div>
+
+
+      <button
+        class="secondary-btn"
+        onclick="addPlayer()"
+      >
+        + AJOUTER UN JOUEUR
+      </button>
+
+
+      <button
+        class="primary-btn"
+        onclick="validatePlayers()"
+      >
+        CONTINUER
+      </button>
 
     </section>
 
   `;
+
 }
 
 
@@ -691,15 +770,24 @@ function addPlayer() {
     );
 
     return;
+
   }
 
   APP.players.push("");
 
   render();
+
 }
 
 
 function removePlayer(index) {
+
+  if (
+    index < 0 ||
+    index >= APP.players.length
+  ) {
+    return;
+  }
 
   APP.players.splice(
     index,
@@ -707,6 +795,7 @@ function removePlayer(index) {
   );
 
   render();
+
 }
 
 
@@ -716,23 +805,27 @@ function syncPlayerInputs() {
     .querySelectorAll(
       "[data-player-index]"
     )
-    .forEach(input => {
+    .forEach(
+      input => {
 
-      const index =
-        Number(
-          input.dataset.playerIndex
-        );
+        const index =
+          Number(
+            input.dataset.playerIndex
+          );
 
-      APP.players[index] =
-        String(
-          input.value || ""
-        )
-        .trim()
-        .replace(
-          /\s+/g,
-          " "
-        );
-    });
+        APP.players[index] =
+          String(
+            input.value || ""
+          )
+          .trim()
+          .replace(
+            /\s+/g,
+            " "
+          );
+
+      }
+    );
+
 }
 
 
@@ -756,27 +849,28 @@ function validatePlayers() {
     render();
 
     return;
+
   }
 
 
-  const unique =
-    new Set(
-      APP.players.map(
-        p => p.toLowerCase()
-      )
+  const normalized =
+    APP.players.map(
+      player =>
+        player.toLowerCase()
     );
 
 
   if (
-    unique.size !==
-    APP.players.length
+    new Set(normalized).size !==
+    normalized.length
   ) {
 
     showToast(
-      "Chaque joueur doit avoir un prénom différent."
+      "Les prénoms doivent être différents."
     );
 
     return;
+
   }
 
 
@@ -786,6 +880,7 @@ function validatePlayers() {
   saveSession();
 
   render();
+
 }
 
 
@@ -793,173 +888,129 @@ function validatePlayers() {
    INTENSITÉ
    ============================================================ */
 
+const INTENSITIES = [
+
+  {
+    id: "COOL",
+    title: "COOL",
+    description:
+      "Tranquille, drôle et accessible."
+  },
+
+  {
+    id: "CLASSIQUE",
+    title: "CLASSIQUE",
+    description:
+      "Le meilleur équilibre pour une soirée."
+  },
+
+  {
+    id: "CHAUD",
+    title: "CHAUD",
+    description:
+      "Plus personnel, plus intense."
+  },
+
+  {
+    id: "CHAOS",
+    title: "CHAOS",
+    description:
+      "Aucune retenue."
+  }
+
+];
+
+
 function renderIntensity() {
-
-  const choices = [
-
-    {
-      id: "COOL",
-      title: "COOL",
-      text:
-        "Tranquille, drôle et accessible."
-    },
-
-    {
-      id: "CLASSIQUE",
-      title: "CLASSIQUE",
-      text:
-        "Le meilleur équilibre pour une soirée."
-    },
-
-    {
-      id: "CHAUD",
-      title: "CHAUD",
-      text:
-        "Plus personnel, plus risqué, plus intense."
-    },
-
-    {
-      id: "CHAOS",
-      title: "CHAOS",
-      text:
-        "Aucune retenue. La soirée peut déraper."
-    }
-
-  ];
-
 
   return `
 
-    <section class="screen">
+    <section class="intensity-screen">
 
-      <div class="screen-inner">
+      <header class="screen-header">
 
-        <header class="screen-header">
+        <button
+          class="back-btn"
+          onclick="setScreen('PLAYERS')"
+        >
+          ‹
+        </button>
 
-          <button
-            class="back-button"
-            onclick="setScreen('PLAYERS')"
-          >
-            ‹
-          </button>
-
-        </header>
-
-
-        <div class="screen-main">
-
-          <p class="eyebrow">
-            ÉTAPE 2
-          </p>
-
-          <h1 class="title">
-            Quelle ambiance ?
-          </h1>
-
-          <p class="subtitle">
-            L'intensité influence les jeux proposés.
-          </p>
-
-
-          <div class="intensity-list">
-
-            ${choices.map(
-              choice => `
-
-                <button
-                  class="
-                    intensity-card
-                    ${
-                      APP.intensity ===
-                      choice.id
-                        ? "selected"
-                        : ""
-                    }
-                  "
-                  onclick="
-                    selectIntensity('${choice.id}')
-                  "
-                >
-
-                  <strong>
-                    ${choice.title}
-                  </strong>
-
-                  <span>
-                    ${choice.text}
-                  </span>
-
-                </button>
-
-              `
-            ).join("")}
-
-          </div>
-
+        <div>
+          Intensité
         </div>
 
+      </header>
 
-        <div class="screen-footer">
 
-          <button
-            class="primary-button"
-            onclick="launchParty()"
-          >
-            COMMENCER
-          </button>
+      <div class="intensity-list">
 
-        </div>
+        ${INTENSITIES.map(
+          intensity => `
+
+            <button
+              class="
+                intensity-card
+                ${
+                  APP.intensity ===
+                  intensity.id
+                    ? "selected"
+                    : ""
+                }
+              "
+              onclick="
+                selectIntensity('${intensity.id}')
+              "
+            >
+
+              <strong>
+                ${intensity.title}
+              </strong>
+
+              <span>
+                ${intensity.description}
+              </span>
+
+            </button>
+
+          `
+        ).join("")}
 
       </div>
+
+
+      <button
+        class="primary-btn"
+        onclick="launchParty()"
+      >
+        COMMENCER
+      </button>
 
     </section>
 
   `;
+
 }
 
 
 function selectIntensity(intensity) {
 
-  APP.intensity =
-    intensity;
-
-  render();
-}
-
-
-/* ============================================================
-   LANCEMENT
-   ============================================================ */
-
-function launchParty() {
-
-  APP.sessionStarted =
-    true;
-
-  APP.round =
-    0;
-
-  saveSession();
-
-  startNextRound();
-}
-
-
-function resumeSession() {
-
   if (
-    APP.players.length < 3
+    !INTENSITIES.some(
+      item =>
+        item.id === intensity
+    )
   ) {
-
-    openPlayers();
-
     return;
   }
 
-  APP.sessionStarted =
-    true;
+  APP.intensity =
+    intensity;
 
-  startNextRound();
+  saveSession();
+
+  render();
+
 }
 
 
@@ -974,7 +1025,12 @@ function getEligibleGames() {
     !Array.isArray(GAMES)
   ) {
 
+    console.error(
+      "GAMES est introuvable."
+    );
+
     return [];
+
   }
 
 
@@ -985,133 +1041,142 @@ function getEligibleGames() {
         return false;
       }
 
-
       if (
-        game.minPlayers &&
         APP.players.length <
         game.minPlayers
       ) {
-
         return false;
       }
 
-
       if (
-        game.maxPlayers &&
         APP.players.length >
         game.maxPlayers
       ) {
-
         return false;
       }
 
-
       if (
         game.contentPool &&
-        typeof QUESTIONS !==
-        "undefined"
+        typeof QUESTIONS !== "undefined"
       ) {
 
+        const pool =
+          QUESTIONS[
+            game.contentPool
+          ];
+
         if (
-          !Array.isArray(
-            QUESTIONS[
-              game.contentPool
-            ]
-          )
+          !Array.isArray(pool) ||
+          !pool.length
         ) {
 
           return false;
+
         }
+
       }
 
-
       return true;
+
     }
   );
+
 }
 
 
 function chooseGame() {
 
-  const games =
+  const eligible =
     getEligibleGames();
 
-
-  if (!games.length) {
-
+  if (!eligible.length) {
     return null;
   }
 
 
-  /*
-    On évite les jeux récemment joués.
-  */
-
-  const recent =
-    new Set(
-      APP.history.slice(-5)
-    );
-
+  /* Évite les jeux récemment utilisés. */
 
   let candidates =
-    games.filter(
+    eligible.filter(
       game =>
-        !recent.has(game.id)
+        !APP.history
+          .slice(-5)
+          .includes(game.id)
     );
 
 
   if (!candidates.length) {
-
     candidates =
-      games;
+      eligible;
   }
 
 
-  /*
-    On évite autant que possible
-    de répéter immédiatement
-    la même famille.
-  */
+  /* Évite la répétition immédiate
+     de la même famille. */
 
-  if (
-    APP.recentFamilies.length
-  ) {
+  const lastFamily =
+    APP.recentFamilies[
+      APP.recentFamilies.length - 1
+    ];
 
-    const lastFamily =
-      APP.recentFamilies[
-        APP.recentFamilies.length - 1
-      ];
 
-    const different =
+  if (lastFamily) {
+
+    const differentFamily =
       candidates.filter(
         game =>
           game.family !==
           lastFamily
       );
 
-    if (different.length) {
+    if (differentFamily.length) {
 
       candidates =
-        different;
+        differentFamily;
+
     }
+
   }
 
 
   return randomItem(
     candidates
   );
+
 }
 
 
 /* ============================================================
-   NOUVEAU TOUR
+   LANCEMENT D'UNE PARTIE
    ============================================================ */
+
+function launchParty() {
+
+  APP.sessionStarted =
+    true;
+
+  APP.round =
+    0;
+
+  APP.history =
+    [];
+
+  APP.recentFamilies =
+    [];
+
+  saveSession();
+
+  startNextRound();
+
+}
+
 
 function startNextRound() {
 
   stopTimer();
 
   resetCurrentTurn();
+
 
   const game =
     chooseGame();
@@ -1120,36 +1185,24 @@ function startNextRound() {
   if (!game) {
 
     showToast(
-      "Aucun jeu disponible."
+      "Aucun jeu disponible pour ce nombre de joueurs."
     );
 
     return;
+
   }
 
 
   APP.round++;
 
+
   APP.currentGame =
     game;
 
 
-  if (
-    !APP.history.includes(
-      game.id
-    )
-  ) {
-
-    APP.history.push(
-      game.id
-    );
-
-  } else {
-
-    APP.history.push(
-      game.id
-    );
-  }
-
+  APP.history.push(
+    game.id
+  );
 
   APP.history =
     APP.history.slice(-30);
@@ -1163,11 +1216,15 @@ function startNextRound() {
     APP.recentFamilies.slice(-3);
 
 
-  prepareGame(game);
+  prepareGame(
+    game
+  );
+
 
   saveSession();
 
-  renderGameFlow();
+  enterFirstPhase();
+
 }
 
 
@@ -1178,8 +1235,7 @@ function startNextRound() {
 function prepareGame(game) {
 
   const pool =
-    typeof QUESTIONS !==
-    "undefined"
+    typeof QUESTIONS !== "undefined"
       ? QUESTIONS[
           game.contentPool
         ]
@@ -1190,9 +1246,9 @@ function prepareGame(game) {
     randomItem(pool);
 
 
-  /*
-    ACTOR
-  */
+  /* ----------------------------------------------------------
+     ACTEUR
+     ---------------------------------------------------------- */
 
   if (
     game.actor ===
@@ -1200,31 +1256,30 @@ function prepareGame(game) {
   ) {
 
     APP.currentActor =
-      getRandomPlayer();
+      choosePlayer();
 
   }
 
 
-  /*
-    TARGET
-  */
+  /* ----------------------------------------------------------
+     CIBLE UNIQUE
+     ---------------------------------------------------------- */
 
   if (
     game.target ===
     TARGET_MODES.ONE
   ) {
 
-    APP.currentTarget =
-      getRandomPlayer(
+    const target =
+      choosePlayer(
         APP.currentActor
           ? [APP.currentActor]
           : []
       );
 
-    /*
-      Pour les jeux où le target
-      est aussi l'acteur.
-    */
+    APP.currentTarget =
+      target;
+
 
     if (
       game.actor ===
@@ -1232,14 +1287,16 @@ function prepareGame(game) {
     ) {
 
       APP.currentActor =
-        APP.currentTarget;
+        target;
+
     }
+
   }
 
 
-  /*
-    DEUX JOUEURS
-  */
+  /* ----------------------------------------------------------
+     DEUX JOUEURS
+     ---------------------------------------------------------- */
 
   if (
     game.target ===
@@ -1247,24 +1304,22 @@ function prepareGame(game) {
   ) {
 
     APP.currentPlayers =
-      shuffle(
-        APP.players
-      ).slice(0, 2);
-
-    APP.currentPair =
-      APP.currentPlayers;
+      chooseTwoPlayers();
 
     APP.currentActor =
-      APP.currentPlayers[0];
+      APP.currentPlayers[0] ||
+      null;
 
     APP.currentTarget =
-      APP.currentPlayers[1];
+      APP.currentPlayers[1] ||
+      null;
+
   }
 
 
-  /*
-    TOUS
-  */
+  /* ----------------------------------------------------------
+     TOUS
+     ---------------------------------------------------------- */
 
   if (
     game.target ===
@@ -1273,743 +1328,201 @@ function prepareGame(game) {
 
     APP.currentPlayers =
       [...APP.players];
+
   }
 
-
-  /*
-    Synchronisation moteur.
-  */
-
-  if (
-    typeof resetGameFlow ===
-    "function"
-  ) {
-
-    resetGameFlow();
-
-    startGameFlow(game);
-
-    setGameActorIfPossible();
-
-    setGameTargetIfPossible();
-  }
-}
-
-
-function setGameActorIfPossible() {
-
-  if (
-    APP.currentActor &&
-    typeof setGameActor ===
-    "function"
-  ) {
-
-    setGameActor(
-      APP.currentActor
-    );
-  }
-}
-
-
-function setGameTargetIfPossible() {
-
-  if (
-    APP.currentTarget &&
-    typeof setGameTarget ===
-    "function"
-  ) {
-
-    setGameTarget(
-      APP.currentTarget
-    );
-  }
 }
 
 
 /* ============================================================
-   FLOW
+   PHASES
    ============================================================ */
 
-function renderGameFlow() {
+function getGameFlow() {
 
-  const game =
-    APP.currentGame;
+  if (
+    !APP.currentGame
+  ) {
+    return [];
+  }
+
+  return Array.isArray(
+    APP.currentGame.flow
+  )
+    ? APP.currentGame.flow
+    : [];
+
+}
 
 
-  if (!game) {
+function getCurrentPhase() {
 
-    startNextRound();
+  const flow =
+    getGameFlow();
+
+  return flow[
+    APP.phaseIndex
+  ] || null;
+
+}
+
+
+function enterFirstPhase() {
+
+  APP.phaseIndex =
+    0;
+
+  showCurrentPhase();
+
+}
+
+
+function advancePhase() {
+
+  const flow =
+    getGameFlow();
+
+
+  if (!flow.length) {
+
+    finishRound();
 
     return;
+
   }
 
 
-  /*
-    IMPORTANT :
-
-    On ignore les phases techniques
-    qui ne doivent jamais devenir
-    des écrans.
-
-    PENALTY est traité dans RESOLVE.
-  */
-
-  let phase =
-    typeof getCurrentGamePhase ===
-    "function"
-      ? getCurrentGamePhase()
-      : game.flow?.[0];
+  APP.phaseIndex++;
 
 
-  while (
-    phase ===
-      FLOW_PHASES.PENALTY ||
-    phase === "RETURN_PHONE" ||
-    phase === "SECRET_REVEAL" ||
-    phase === "RESULT" ||
-    phase === "NEXT" ||
-    phase === "PLAY"
+  if (
+    APP.phaseIndex >=
+    flow.length
   ) {
 
+    finishRound();
+
+    return;
+
+  }
+
+
+  showCurrentPhase();
+
+}
+
+
+function showCurrentPhase() {
+
+  let phase =
+    getCurrentPhase();
+
+
+  /* Sécurité :
+     les anciennes phases techniques
+     ne doivent plus produire d'écran. */
+
+  while (
+    phase === FLOW_PHASES.INTRO ||
+    phase === FLOW_PHASES.SELECT_TARGET ||
+    phase === FLOW_PHASES.SELECT_PLAYERS ||
+    phase === FLOW_PHASES.PENALTY ||
+    phase === "PASS_PHONE" ||
+    phase === "PRIVATE_REVEAL" ||
+    phase === "RETURN_PHONE" ||
+    phase === "SECRET_REVEAL" ||
+    phase === "PLAY" ||
+    phase === "RESULT" ||
+    phase === "NEXT"
+  ) {
+
+    APP.phaseIndex++;
+
     phase =
-      typeof nextGamePhase ===
-      "function"
-        ? nextGamePhase()
-        : null;
+      getCurrentPhase();
 
 
     if (!phase) {
-      break;
+
+      finishRound();
+
+      return;
+
     }
+
   }
 
 
-  /*
-    INTRO n'est conservé que
-    pour les jeux qui en ont
-    réellement besoin.
-  */
+  switch (phase) {
 
-  if (
-    phase === FLOW_PHASES.INTRO
-  ) {
+    case FLOW_PHASES.ACTION:
 
-    APP.screen =
-      "GAME";
+      APP.screen =
+        "ACTION";
 
-    render();
+      render();
 
-    return;
+      startGameTimerIfNeeded();
+
+      return;
+
+
+    case FLOW_PHASES.VOTE:
+
+      APP.screen =
+        "VOTE";
+
+      render();
+
+      return;
+
+
+    case FLOW_PHASES.RESOLVE:
+
+      APP.screen =
+        "RESOLVE";
+
+      render();
+
+      return;
+
+
+    case FLOW_PHASES.SUCCESS_CHECK:
+
+      APP.screen =
+        "RESOLVE";
+
+      render();
+
+      return;
+
+
+    case FLOW_PHASES.PASS_SECRET:
+
+      APP.screen =
+        "PASS_SECRET";
+
+      render();
+
+      return;
+
+
+    case FLOW_PHASES.SECRET_ACTION:
+
+      APP.screen =
+        "SECRET_ACTION";
+
+      render();
+
+      return;
+
+
+    default:
+
+      finishRound();
+
   }
 
-
-  if (
-    phase ===
-    FLOW_PHASES.SELECT_TARGET
-  ) {
-
-    /*
-      Dans cette version,
-      les jeux individuels ont
-      une cible déterminée
-      automatiquement.
-
-      On affiche directement
-      l'action.
-
-      Cela évite un écran
-      supplémentaire.
-    */
-
-    nextGamePhase();
-
-    renderGameFlow();
-
-    return;
-  }
-
-
-  if (
-    phase ===
-    FLOW_PHASES.SELECT_PLAYERS
-  ) {
-
-    nextGamePhase();
-
-    renderGameFlow();
-
-    return;
-  }
-
-
-  if (
-    phase ===
-    FLOW_PHASES.PASS_SECRET
-  ) {
-
-    APP.screen =
-      "PASS_SECRET";
-
-    render();
-
-    return;
-  }
-
-
-  if (
-    phase ===
-    FLOW_PHASES.SECRET_ACTION
-  ) {
-
-    APP.screen =
-      "SECRET_ACTION";
-
-    render();
-
-    return;
-  }
-
-
-  if (
-    phase === FLOW_PHASES.ACTION
-  ) {
-
-    APP.screen =
-      "ACTION";
-
-    render();
-
-    return;
-  }
-
-
-  if (
-    phase === FLOW_PHASES.VOTE
-  ) {
-
-    APP.screen =
-      "VOTE";
-
-    render();
-
-    return;
-  }
-
-
-  if (
-    phase === FLOW_PHASES.RESOLVE
-  ) {
-
-    APP.screen =
-      "RESOLVE";
-
-    render();
-
-    return;
-  }
-
-
-  if (
-    phase === FLOW_PHASES.SUCCESS_CHECK
-  ) {
-
-    APP.screen =
-      "RESOLVE";
-
-    render();
-
-    return;
-  }
-
-
-  /*
-    Sécurité.
-  */
-
-  APP.screen =
-    "RESOLVE";
-
-  render();
-}
-
-
-/* ============================================================
-   INTRO
-   ============================================================ */
-
-function renderGame() {
-
-  const game =
-    APP.currentGame;
-
-
-  if (!game) {
-
-    startNextRound();
-
-    return "";
-  }
-
-
-  return `
-
-    <section class="screen">
-
-      <div class="screen-inner">
-
-        <header class="screen-header">
-
-          <span class="round-label">
-            TOUR ${APP.round}
-          </span>
-
-        </header>
-
-
-        <div class="screen-main centered">
-
-          <p class="eyebrow">
-            ${escapeHTML(
-              game.family || "JEU"
-            )}
-          </p>
-
-          <h1 class="title">
-            ${escapeHTML(
-              game.name
-            )}
-          </h1>
-
-          <div class="game-card">
-
-            ${renderContentPreview()}
-
-          </div>
-
-        </div>
-
-
-        <div class="screen-footer">
-
-          <button
-            class="primary-button"
-            onclick="advanceFromIntro()"
-          >
-            COMMENCER
-          </button>
-
-        </div>
-
-      </div>
-
-    </section>
-
-  `;
-}
-
-
-function renderContentPreview() {
-
-  const content =
-    APP.currentContent;
-
-
-  if (!content) {
-
-    return `
-      <p>
-        Préparez-vous.
-      </p>
-    `;
-  }
-
-
-  if (
-    typeof content ===
-    "string"
-  ) {
-
-    return `
-      <p class="game-prompt">
-        ${escapeHTML(content)}
-      </p>
-    `;
-  }
-
-
-  return `
-    <p class="game-prompt">
-      ${escapeHTML(
-        content.question ||
-        content.text ||
-        content.instruction ||
-        content.word ||
-        "Préparez-vous."
-      )}
-    </p>
-  `;
-}
-
-
-function advanceFromIntro() {
-
-  const phase =
-    getCurrentGamePhaseSafe();
-
-
-  if (
-    phase ===
-    FLOW_PHASES.INTRO
-  ) {
-
-    nextGamePhaseSafe();
-
-    renderGameFlow();
-
-    return;
-  }
-
-
-  renderGameFlow();
-}
-
-
-/* ============================================================
-   PASSAGE TÉLÉPHONE
-   ============================================================ */
-
-function renderPassSecret() {
-
-  const target =
-    APP.currentTarget ||
-    APP.currentActor;
-
-
-  return `
-
-    <section class="
-      screen
-      private-transition-screen
-    ">
-
-      <div class="screen-inner">
-
-
-        <div class="screen-main centered">
-
-          <div class="phone-icon">
-            📱
-          </div>
-
-
-          <p class="eyebrow">
-            TÉLÉPHONE
-          </p>
-
-
-          <h1 class="title">
-            Passe le téléphone à
-            <strong>
-              ${escapeHTML(
-                target || "la personne"
-              )}
-            </strong>
-          </h1>
-
-
-          <p class="subtitle">
-            Personne d'autre ne doit regarder l'écran.
-          </p>
-
-        </div>
-
-
-        <div class="screen-footer">
-
-          <button
-            class="primary-button"
-            onclick="phoneInHand()"
-          >
-            TÉLÉPHONE EN MAIN
-          </button>
-
-        </div>
-
-
-      </div>
-
-    </section>
-
-  `;
-}
-
-
-function phoneInHand() {
-
-  nextGamePhaseSafe();
-
-  renderGameFlow();
-}
-
-
-/* ============================================================
-   SECRET + ACTION
-   ============================================================ */
-
-function renderSecretAction() {
-
-  const game =
-    APP.currentGame;
-
-  const content =
-    APP.currentContent;
-
-  const target =
-    APP.currentTarget ||
-    APP.currentActor;
-
-
-  let title = "";
-  let instruction = "";
-
-
-  if (
-    game.contentPool ===
-    "EXPRESSION"
-  ) {
-
-    title =
-      content;
-
-    instruction =
-      "Fais deviner cette expression sans la prononcer.";
-  }
-
-
-  else if (
-    game.contentPool ===
-    "GUESS_WORD"
-  ) {
-
-    title =
-      content?.word ||
-      "";
-
-    instruction =
-      content?.hint
-        ? `Fais deviner ce mot. Indice : ${content.hint}`
-        : "Fais deviner ce mot sans le prononcer.";
-  }
-
-
-  else if (
-    game.contentPool ===
-    "DESCRIPTION"
-  ) {
-
-    title =
-      content?.word ||
-      "";
-
-    instruction =
-      content?.rule ||
-      "Fais deviner ce mot.";
-  }
-
-
-  else if (
-    game.contentPool ===
-    "MIME"
-  ) {
-
-    title =
-      content;
-
-    instruction =
-      "Fais deviner uniquement avec des gestes.";
-  }
-
-
-  else if (
-    game.contentPool ===
-    "FORBIDDEN_WORD"
-  ) {
-
-    title =
-      content?.word ||
-      "";
-
-    instruction =
-      content?.forbidden
-        ? `Ne prononce surtout pas : ${content.forbidden}`
-        : "Évite le mot interdit.";
-  }
-
-
-  else if (
-    game.contentPool ===
-    "TRAP_WORD"
-  ) {
-
-    title =
-      content?.word ||
-      "";
-
-    instruction =
-      content?.forbidden
-        ? `Piège : ${content.forbidden}`
-        : "Tends ton piège au groupe.";
-  }
-
-
-  else if (
-    game.contentPool ===
-    "MISSION"
-  ) {
-
-    title =
-      content;
-
-    instruction =
-      "Accomplis cette mission sans te faire griller.";
-  }
-
-
-  else if (
-    game.contentPool ===
-    "TRAP_PROMPT"
-  ) {
-
-    title =
-      "LE PIÈGE";
-
-    instruction =
-      content;
-  }
-
-
-  else {
-
-    title =
-      content?.text ||
-      content?.instruction ||
-      content ||
-      game.name;
-
-    instruction =
-      content?.rule ||
-      "Réalise le défi.";
-  }
-
-
-  return `
-
-    <section class="
-      screen
-      secret-screen
-    ">
-
-      <div class="screen-inner">
-
-
-        <div class="screen-main centered">
-
-          <p class="eyebrow">
-            SECRET
-          </p>
-
-
-          <h1 class="title">
-            ${escapeHTML(title)}
-          </h1>
-
-
-          <div class="game-card">
-
-            <p class="game-prompt">
-              ${escapeHTML(
-                instruction
-              )}
-            </p>
-
-          </div>
-
-        </div>
-
-
-        <div class="screen-footer">
-
-          <button
-            class="primary-button"
-            onclick="secretSeen()"
-          >
-            C'EST BON
-          </button>
-
-        </div>
-
-
-      </div>
-
-    </section>
-
-  `;
-}
-
-
-function secretSeen() {
-
-  /*
-    Pour une mission secrète,
-    il n'y a pas de résolution
-    immédiate.
-  */
-
-  if (
-    APP.currentGame?.id ===
-    "G015"
-  ) {
-
-    finishSecretMission();
-
-    return;
-  }
-
-
-  /*
-    Pour les autres jeux,
-    on passe directement à
-    la résolution OUI / NON.
-
-    Aucun écran "rends le téléphone".
-  */
-
-  nextGamePhaseSafe();
-
-  renderGameFlow();
-}
-
-
-function finishSecretMission() {
-
-  APP.result = {
-
-    type: "MISSION_STARTED",
-
-    player:
-      APP.currentTarget ||
-      APP.currentActor
-
-  };
-
-
-  /*
-    Retour immédiat au prochain
-    tour : la mission continue
-    dans la vraie soirée.
-  */
-
-  startNextRound();
 }
 
 
@@ -2017,19 +1530,78 @@ function finishSecretMission() {
    ACTION PUBLIQUE
    ============================================================ */
 
-function renderAction() {
+function getActionTitle() {
 
   const game =
     APP.currentGame;
 
+  if (!game) {
+    return "DÉFI";
+  }
+
+
+  if (
+    game.contentPool ===
+    "HOT"
+  ) {
+
+    return (
+      APP.currentTarget ||
+      APP.currentActor ||
+      game.name
+    );
+
+  }
+
+
+  if (
+    game.contentPool ===
+    "STATEMENTS"
+  ) {
+
+    return (
+      APP.currentActor ||
+      game.name
+    );
+
+  }
+
+
+  if (
+    game.target ===
+    TARGET_MODES.ONE
+  ) {
+
+    return (
+      APP.currentActor ||
+      APP.currentTarget ||
+      game.name
+    );
+
+  }
+
+
+  if (
+    game.target ===
+    TARGET_MODES.TWO
+  ) {
+
+    return APP.currentPlayers.join(
+      " & "
+    );
+
+  }
+
+
+  return game.name;
+
+}
+
+
+function getActionPrompt() {
+
   const content =
     APP.currentContent;
-
-
-  let title =
-    game.name;
-
-  let prompt = "";
 
 
   if (
@@ -2037,165 +1609,182 @@ function renderAction() {
     "string"
   ) {
 
-    prompt =
-      content;
+    return content;
+
   }
 
-  else if (
+
+  if (
     content?.question
   ) {
 
-    prompt =
-      content.question;
+    return content.question;
+
   }
 
-  else if (
+
+  if (
     content?.text
   ) {
 
-    prompt =
-      content.text;
+    return content.text;
+
   }
 
-  else if (
+
+  if (
     content?.instruction
   ) {
 
-    prompt =
-      content.instruction;
+    return content.instruction;
+
   }
 
-  else if (
+
+  if (
     content?.word
   ) {
 
-    prompt =
-      content.word;
+    return content.word;
+
   }
 
 
-  /*
-    Question chaude
-  */
+  return "Préparez-vous.";
 
-  if (
-    game.contentPool ===
-    "HOT"
-  ) {
+}
 
-    title =
-      APP.currentTarget ||
-      APP.currentActor;
 
-    prompt =
-      content?.text ||
-      "";
+function renderAction() {
+
+  const game =
+    APP.currentGame;
+
+
+  if (!game) {
+    return "";
   }
 
 
-  /*
-    Choix impossible
-  */
+  const prompt =
+    getActionPrompt();
+
+
+  /* ----------------------------------------------------------
+     CHOIX IMPOSSIBLE
+     ---------------------------------------------------------- */
 
   if (
     game.contentPool ===
     "CHOICE"
   ) {
 
-    prompt =
-      content?.question ||
-      "";
+    return renderChoiceAction();
 
-    return renderChoiceAction(
-      title,
-      prompt,
-      content?.choices || []
-    );
+  }
+
+
+  const target =
+    APP.currentTarget;
+
+
+  const targetLine =
+    target
+      ? `
+        <div class="game-target">
+          ${escapeHTML(target)}
+        </div>
+      `
+      : "";
+
+
+  let buttonLabel =
+    "TERMINÉ";
+
+
+  if (
+    game.type ===
+    GAME_TYPES.GROUP_VOTE ||
+    game.voteMode !==
+    VOTE_MODES.NONE
+  ) {
+
+    buttonLabel =
+      "VOTER";
+
   }
 
 
   return `
 
-    <section class="screen">
+    <section class="game-screen">
 
-      <div class="screen-inner">
+      <div class="game-header">
 
+        <span>
+          TOUR ${APP.round}
+        </span>
 
-        <div class="screen-main centered">
-
-          <p class="eyebrow">
-            ${escapeHTML(
-              game.family ||
-              "DÉFI"
-            )}
-          </p>
-
-
-          <h1 class="title">
-            ${escapeHTML(
-              title
-            )}
-          </h1>
-
-
-          <div class="game-card">
-
-            <p class="game-prompt">
-              ${escapeHTML(
-                prompt
-              )}
-            </p>
-
-          </div>
-
-        </div>
-
-
-        <div class="screen-footer">
-
-          <button
-            class="primary-button"
-            onclick="actionDone()"
-          >
-            TERMINÉ
-          </button>
-
-        </div>
-
+        <span>
+          ${escapeHTML(
+            game.family || "DÉFI"
+          )}
+        </span>
 
       </div>
+
+
+      <div class="game-card">
+
+        ${
+          targetLine
+        }
+
+        <div class="game-label">
+          ${escapeHTML(
+            game.name
+          )}
+        </div>
+
+        <div class="game-main-text">
+          ${escapeHTML(
+            prompt
+          )}
+        </div>
+
+        ${
+          game.timer
+            ? `
+              <div class="timer">
+                ${APP.timerRemaining || game.timer}s
+              </div>
+            `
+            : ""
+        }
+
+      </div>
+
+
+      <button
+        class="primary-btn"
+        onclick="actionDone()"
+      >
+        ${buttonLabel}
+      </button>
 
     </section>
 
   `;
+
 }
 
 
 function actionDone() {
 
-  const phase =
-    getCurrentGamePhaseSafe();
+  stopTimer();
 
+  advancePhase();
 
-  /*
-    Jeux qui nécessitent
-    une validation OUI / NON.
-  */
-
-  if (
-    phase ===
-    FLOW_PHASES.SUCCESS_CHECK
-  ) {
-
-    renderGameFlow();
-
-    return;
-  }
-
-
-  nextGamePhaseSafe();
-
-  renderGameFlow();
 }
 
 
@@ -2203,57 +1792,76 @@ function actionDone() {
    CHOIX
    ============================================================ */
 
-function renderChoiceAction(
-  title,
-  prompt,
-  choices
-) {
+function renderChoiceAction() {
+
+  const content =
+    APP.currentContent;
+
+
+  const choices =
+    Array.isArray(
+      content?.choices
+    )
+      ? content.choices
+      : [];
+
 
   return `
 
-    <section class="screen">
+    <section class="game-screen">
 
-      <div class="screen-inner">
+      <div class="game-header">
 
-        <div class="screen-main">
+        <span>
+          TOUR ${APP.round}
+        </span>
 
-          <p class="eyebrow">
-            CHOIX
-          </p>
+        <span>
+          CHOIX
+        </span>
 
-          <h1 class="title">
-            ${escapeHTML(
-              prompt
-            )}
-          </h1>
+      </div>
 
 
-          <div class="choice-list">
+      <div class="game-card">
 
-            ${choices.map(
-              (choice, index) => `
-
-                <button
-                  class="choice-button"
-                  onclick="
-                    chooseChoice(${index})
-                  "
-                >
-                  ${escapeHTML(choice)}
-                </button>
-
-              `
-            ).join("")}
-
-          </div>
-
+        <div class="game-label">
+          CHOIX IMPOSSIBLE
         </div>
+
+        <div class="game-main-text">
+          ${escapeHTML(
+            content?.question ||
+            "Choisissez."
+          )}
+        </div>
+
+      </div>
+
+
+      <div class="choice-grid">
+
+        ${choices.map(
+          (choice, index) => `
+
+            <button
+              class="choice-btn"
+              onclick="
+                chooseChoice(${index})
+              "
+            >
+              ${escapeHTML(choice)}
+            </button>
+
+          `
+        ).join("")}
 
       </div>
 
     </section>
 
   `;
+
 }
 
 
@@ -2263,24 +1871,26 @@ function chooseChoice(index) {
     APP.currentContent?.choices ||
     [];
 
+
+  const choice =
+    choices[index];
+
+
+  if (!choice) {
+    return;
+  }
+
+
   APP.selectedChoice =
-    choices[index] ||
-    null;
+    choice;
 
 
-  APP.result = {
-
-    type: "CHOICE",
-
-    choice:
-      APP.selectedChoice
-
-  };
+  APP.success =
+    true;
 
 
-  nextGamePhaseSafe();
+  advancePhase();
 
-  renderGameFlow();
 }
 
 
@@ -2288,89 +1898,99 @@ function chooseChoice(index) {
    VOTE
    ============================================================ */
 
-function renderVote() {
-
-  const game =
-    APP.currentGame;
+function getVotePrompt() {
 
   const content =
     APP.currentContent;
 
 
-  let prompt =
+  if (
     typeof content ===
     "string"
-      ? content
-      : (
-          content?.question ||
-          content?.text ||
-          content?.instruction ||
-          "Qui choisissez-vous ?"
-        );
+  ) {
+
+    return content;
+
+  }
 
 
-  const players =
-    APP.players;
+  return (
+    content?.question ||
+    content?.text ||
+    content?.instruction ||
+    "Qui choisissez-vous ?"
+  );
+
+}
+
+
+function renderVote() {
+
+  const prompt =
+    getVotePrompt();
 
 
   return `
 
-    <section class="screen">
+    <section class="result-screen">
 
-      <div class="screen-inner">
+      <div class="game-header">
 
+        <span>
+          TOUR ${APP.round}
+        </span>
 
-        <div class="screen-main">
+        <span>
+          VOTE
+        </span>
 
-          <p class="eyebrow">
-            VOTE
-          </p>
-
-
-          <h1 class="title">
-            ${escapeHTML(
-              prompt
-            )}
-          </h1>
+      </div>
 
 
-          <p class="subtitle">
-            Désignez la personne choisie
-            par le groupe.
-          </p>
+      <div class="result-card">
 
-
-          <div class="vote-list">
-
-            ${players.map(
-              player => `
-
-                <button
-                  class="vote-button"
-                  onclick="
-                    registerVote('${escapeHTML(player)}')
-                  "
-                >
-                  ${escapeHTML(player)}
-                </button>
-
-              `
-            ).join("")}
-
-          </div>
-
+        <div class="game-label">
+          VOTE
         </div>
 
+        <div class="game-main-text">
+          ${escapeHTML(prompt)}
+        </div>
+
+        <p class="game-subtext">
+          Désignez la personne choisie par le groupe.
+        </p>
+
+      </div>
+
+
+      <div class="vote-list">
+
+        ${APP.players.map(
+          player => `
+
+            <button
+              class="choice-btn"
+              onclick="
+                selectVote('${escapeHTML(player)}')
+              "
+            >
+              ${escapeHTML(player)}
+            </button>
+
+          `
+        ).join("")}
 
       </div>
 
     </section>
 
   `;
+
 }
 
 
-function registerVote(player) {
+function selectVote(player) {
 
   if (
     !APP.players.includes(
@@ -2379,184 +1999,330 @@ function registerVote(player) {
   ) {
 
     return;
+
   }
 
 
-  /*
-    Pour un vote de groupe,
-    l'application demande une
-    confirmation du choix collectif.
-
-    On ne considère PAS le premier
-    clic comme le résultat.
-  */
-
-  APP.votes[player] =
-    (
-      APP.votes[player] ||
-      0
-    ) + 1;
-
-
-  /*
-    Ici, le groupe valide
-    explicitement le résultat.
-
-    Pour éviter le faux vote
-    "un clic = résultat",
-    on utilise un écran de
-    confirmation très court.
-  */
-
-  APP.currentTarget =
+  APP.voteTarget =
     player;
-
-
-  APP.result = {
-
-    type: "VOTE_PENDING",
-
-    player,
-
-    votes:
-      APP.votes[player]
-
-  };
-
-
-  renderVoteConfirmation();
-}
-
-
-function renderVoteConfirmation() {
-
-  const target =
-    APP.currentTarget;
-
-
-  const count =
-    APP.votes[target] ||
-    1;
-
-
-  const players =
-    APP.players.length;
-
-
-  return `
-
-    <section class="screen">
-
-      <div class="screen-inner">
-
-
-        <div class="screen-main centered">
-
-          <p class="eyebrow">
-            VOTE
-          </p>
-
-
-          <h1 class="title">
-            ${escapeHTML(target)}
-          </h1>
-
-
-          <p class="subtitle">
-            Le groupe confirme ce choix ?
-          </p>
-
-
-          <div class="game-card">
-
-            <strong>
-              ${count} vote${count > 1 ? "s" : ""}
-            </strong>
-
-          </div>
-
-        </div>
-
-
-        <div class="screen-footer">
-
-          <button
-            class="primary-button"
-            onclick="confirmVote()"
-          >
-            CONFIRMER
-          </button>
-
-
-          <button
-            class="secondary-button"
-            onclick="cancelVote()"
-          >
-            CHANGER
-          </button>
-
-        </div>
-
-
-      </div>
-
-    </section>
-
-  `;
-}
-
-
-function confirmVote() {
-
-  const target =
-    APP.currentTarget;
-
-
-  if (!target) {
-    return;
-  }
 
 
   APP.result = {
 
     type: "VOTE",
 
-    target,
-
-    votes:
-      APP.votes[target] ||
-      1
+    target:
+      player
 
   };
 
 
   /*
-    Le perdant est la cible
-    du vote.
+    IMPORTANT :
+
+    Le clic est directement
+    le choix du groupe.
+
+    PAS DE DEUXIÈME ÉCRAN
+    "CONFIRMER".
+
+    Le prochain écran est
+    directement la résolution.
   */
 
-  if (
-    APP.currentGame?.penalty ===
-    PENALTIES.LOSER
-  ) {
+  advancePhase();
 
-    APP.currentTarget =
-      target;
-  }
-
-
-  nextGamePhaseSafe();
-
-  renderGameFlow();
 }
 
 
-function cancelVote() {
+/* ============================================================
+   SECRET — PASSAGE DU TÉLÉPHONE
+   ============================================================ */
 
-  APP.currentTarget =
-    null;
+function renderPassSecret() {
 
-  render();
+  const player =
+    APP.currentActor ||
+    APP.currentTarget ||
+    "la personne désignée";
+
+
+  return `
+
+    <section class="private-transition">
+
+      <div class="private-top">
+
+        <div class="private-icon">
+          📱
+        </div>
+
+        <div class="eyebrow">
+          TÉLÉPHONE
+        </div>
+
+        <h1>
+          Passe le téléphone à
+          <br>
+          ${escapeHTML(player)}
+        </h1>
+
+        <p>
+          Personne d'autre ne doit regarder l'écran.
+        </p>
+
+      </div>
+
+
+      <button
+        class="primary-btn"
+        onclick="phoneInHand()"
+      >
+        TÉLÉPHONE EN MAIN
+      </button>
+
+    </section>
+
+  `;
+
+}
+
+
+function phoneInHand() {
+
+  advancePhase();
+
+}
+
+
+/* ============================================================
+   SECRET — CONTENU PRIVÉ
+   ============================================================ */
+
+function getSecretTitle() {
+
+  const content =
+    APP.currentContent;
+
+
+  switch (
+    APP.currentGame?.contentPool
+  ) {
+
+    case "EXPRESSION":
+
+      return content || "";
+
+
+    case "MIME":
+
+      return content || "";
+
+
+    case "MISSION":
+
+      return content || "";
+
+
+    case "GUESS_WORD":
+
+      return content?.word || "";
+
+
+    case "DESCRIPTION":
+
+      return content?.word || "";
+
+
+    case "FORBIDDEN_WORD":
+
+      return content?.word || "";
+
+
+    case "TRAP_WORD":
+
+      return content?.word || "";
+
+
+    case "TRAP_PROMPT":
+
+      return "LE PIÈGE";
+
+
+    default:
+
+      return (
+        content?.word ||
+        content?.text ||
+        content?.instruction ||
+        content ||
+        APP.currentGame?.name ||
+        ""
+      );
+
+  }
+
+}
+
+
+function getSecretInstruction() {
+
+  const content =
+    APP.currentContent;
+
+
+  switch (
+    APP.currentGame?.contentPool
+  ) {
+
+    case "EXPRESSION":
+
+      return "Fais deviner cette expression sans la prononcer.";
+
+
+    case "MIME":
+
+      return "Fais deviner uniquement avec des gestes.";
+
+
+    case "MISSION":
+
+      return "Accomplis cette mission sans te faire griller.";
+
+
+    case "GUESS_WORD":
+
+      return content?.hint
+        ? `Fais deviner ce mot. Indice : ${content.hint}`
+        : "Fais deviner ce mot sans le prononcer.";
+
+
+    case "DESCRIPTION":
+
+      return (
+        content?.rule ||
+        "Fais deviner ce mot."
+      );
+
+
+    case "FORBIDDEN_WORD":
+
+      return content?.forbidden
+        ? `Ne prononce surtout pas : ${content.forbidden}`
+        : "Évite le mot interdit.";
+
+
+    case "TRAP_WORD":
+
+      return content?.forbidden
+        ? `Piège : ${content.forbidden}`
+        : "Tends ton piège au groupe.";
+
+
+    case "TRAP_PROMPT":
+
+      return content ||
+        "Tends ton piège au groupe.";
+
+
+    default:
+
+      return (
+        content?.rule ||
+        content?.instruction ||
+        "Réalise le défi."
+      );
+
+  }
+
+}
+
+
+function renderSecretAction() {
+
+  const title =
+    getSecretTitle();
+
+
+  const instruction =
+    getSecretInstruction();
+
+
+  return `
+
+    <section class="private-screen">
+
+      <div class="private-top">
+
+        <div class="private-label">
+          SECRET
+        </div>
+
+
+        <div class="secret-card">
+
+          <div class="secret-label">
+            ${escapeHTML(
+              APP.currentActor ||
+              APP.currentTarget ||
+              ""
+            )}
+          </div>
+
+
+          <div class="secret-text">
+            ${escapeHTML(title)}
+          </div>
+
+
+          <div class="secret-subtext">
+            ${escapeHTML(instruction)}
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <button
+        class="primary-btn"
+        onclick="secretSeen()"
+      >
+        C'EST BON
+      </button>
+
+    </section>
+
+  `;
+
+}
+
+
+function secretSeen() {
+
+  /*
+    MISSION SECRÈTE :
+
+    Le joueur reçoit sa mission,
+    puis elle continue dans la
+    soirée. Aucun écran public
+    supplémentaire.
+  */
+
+  if (
+    APP.currentGame?.id ===
+    "G015"
+  ) {
+
+    finishRound();
+
+    return;
+
+  }
+
+
+  advancePhase();
+
 }
 
 
@@ -2566,96 +2332,120 @@ function cancelVote() {
 
 function renderResolve() {
 
-  const game =
-    APP.currentGame;
+  const phase =
+    getCurrentPhase();
 
 
   /*
     ------------------------------------------------------------
-    QUESTION OUI / NON
+    SUCCESS CHECK
     ------------------------------------------------------------
   */
 
   if (
-    getCurrentGamePhaseSafe() ===
+    phase ===
     FLOW_PHASES.SUCCESS_CHECK
   ) {
 
-    const player =
-      APP.currentActor ||
-      APP.currentTarget;
+    return renderSuccessCheck();
 
-
-    return `
-
-      <section class="screen">
-
-        <div class="screen-inner">
-
-
-          <div class="screen-main centered">
-
-            <p class="eyebrow">
-              À TOI
-            </p>
-
-
-            <h1 class="title">
-              ${escapeHTML(
-                player ||
-                "Alors ?"
-              )}
-            </h1>
-
-
-            <div class="game-card">
-
-              <p class="game-prompt">
-                Tu as réussi ?
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <div class="screen-footer">
-
-            <button
-              class="primary-button"
-              onclick="resolveSuccess(true)"
-            >
-              OUI
-            </button>
-
-
-            <button
-              class="secondary-button"
-              onclick="resolveSuccess(false)"
-            >
-              NON
-            </button>
-
-          </div>
-
-
-        </div>
-
-      </section>
-
-    `;
   }
 
 
   /*
     ------------------------------------------------------------
-    RÉSULTAT
+    VOTE
     ------------------------------------------------------------
   */
 
-  return renderFinalResolve(
-    game
-  );
+  if (
+    APP.result?.type ===
+    "VOTE"
+  ) {
+
+    return renderVoteResult();
+
+  }
+
+
+  /*
+    ------------------------------------------------------------
+    CHOIX
+    ------------------------------------------------------------
+  */
+
+  if (
+    APP.selectedChoice
+  ) {
+
+    return renderChoiceResult();
+
+  }
+
+
+  /*
+    ------------------------------------------------------------
+    RÉSOLUTION GÉNÉRIQUE
+    ------------------------------------------------------------
+  */
+
+  return renderGenericResult();
+
+}
+
+
+/* ============================================================
+   SUCCESS CHECK
+   ============================================================ */
+
+function renderSuccessCheck() {
+
+  const player =
+    APP.currentActor ||
+    APP.currentTarget ||
+    "Alors ?";
+
+
+  return `
+
+    <section class="result-screen">
+
+      <div class="result-card">
+
+        <div class="game-label">
+          RÉUSSITE ?
+        </div>
+
+        <div class="game-main-text">
+          ${escapeHTML(player)}
+        </div>
+
+        <p class="game-subtext">
+          Tu as réussi le défi ?
+        </p>
+
+      </div>
+
+
+      <button
+        class="primary-btn"
+        onclick="resolveSuccess(true)"
+      >
+        OUI
+      </button>
+
+
+      <button
+        class="secondary-btn"
+        onclick="resolveSuccess(false)"
+      >
+        NON
+      </button>
+
+    </section>
+
+  `;
+
 }
 
 
@@ -2670,303 +2460,305 @@ function resolveSuccess(success) {
     APP.currentTarget;
 
 
-  if (
-    success
-  ) {
-
-    APP.result = {
-
-      type:
-        "SUCCESS",
-
-      player,
-
-      success:
-        true
-
-    };
+  if (success) {
 
     APP.consequence =
       null;
 
   } else {
 
-    APP.result = {
-
-      type:
-        "FAILURE",
-
-      player,
-
-      success:
-        false
-
-    };
-
     APP.consequence =
       getConsequence(
         player
       );
+
   }
 
 
-  render();
+  /*
+    On ne crée PAS une nouvelle phase.
+
+    La résolution est immédiatement
+    affichée dans le même écran logique.
+  */
+
+  renderSuccessResult();
+
 }
 
 
-function renderFinalResolve(game) {
+function renderSuccessResult() {
 
   const player =
-    APP.result?.player ||
     APP.currentActor ||
-    APP.currentTarget;
+    APP.currentTarget ||
+    "La personne concernée";
 
-
-  /*
-    Succès
-  */
 
   if (
-    APP.result?.type ===
-    "SUCCESS"
+    APP.success
   ) {
 
-    return `
+    return renderSuccessResultHTML(
+      player
+    );
 
-      <section class="screen">
-
-        <div class="screen-inner">
-
-
-          <div class="screen-main centered">
-
-            <p class="eyebrow">
-              RÉUSSI
-            </p>
-
-
-            <h1 class="title">
-              Bien joué.
-            </h1>
-
-
-            <p class="subtitle">
-              ${escapeHTML(
-                player || ""
-              )}
-              a réussi.
-            </p>
-
-          </div>
-
-
-          <div class="screen-footer">
-
-            <button
-              class="primary-button"
-              onclick="finishRound()"
-            >
-              TOUR SUIVANT
-            </button>
-
-          </div>
-
-
-        </div>
-
-      </section>
-
-    `;
   }
 
 
-  /*
-    Échec / conséquence
-  */
+  return renderFailureResultHTML(
+    player
+  );
 
-  if (
-    APP.result?.type ===
-    "FAILURE"
-  ) {
-
-    return `
-
-      <section class="screen">
-
-        <div class="screen-inner">
+}
 
 
-          <div class="screen-main centered">
+function renderSuccessResultHTML(player) {
 
-            <p class="eyebrow">
-              CONSÉQUENCE
-            </p>
-
-
-            <h1 class="title">
-              ${escapeHTML(
-                player || ""
-              )}
-            </h1>
+  const root =
+    document.getElementById(
+      "app"
+    );
 
 
-            <div class="game-card consequence-card">
-
-              <p class="game-prompt">
-                ${escapeHTML(
-                  APP.consequence
-                )}
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <div class="screen-footer">
-
-            <button
-              class="primary-button"
-              onclick="finishRound()"
-            >
-              C'EST FAIT
-            </button>
-
-          </div>
-
-
-        </div>
-
-      </section>
-
-    `;
+  if (!root) {
+    return;
   }
 
 
-  /*
-    Résultat d'un vote
-  */
+  root.innerHTML = `
 
-  if (
-    APP.result?.type ===
-    "VOTE"
-  ) {
+    <section class="result-screen">
 
-    return `
+      <div class="result-card">
 
-      <section class="screen">
-
-        <div class="screen-inner">
-
-
-          <div class="screen-main centered">
-
-            <p class="eyebrow">
-              RÉSULTAT
-            </p>
-
-
-            <h1 class="title">
-              ${escapeHTML(
-                APP.result.target
-              )}
-            </h1>
-
-
-            <p class="subtitle">
-              Le groupe a choisi
-              cette personne.
-            </p>
-
-
-            ${
-              game?.penalty ===
-              PENALTIES.LOSER
-
-                ? `
-
-                  <div class="game-card consequence-card">
-
-                    <p class="game-prompt">
-                      ${escapeHTML(
-                        getConsequence(
-                          APP.result.target
-                        )
-                      )}
-                    </p>
-
-                  </div>
-
-                `
-
-                : ""
-            }
-
-          </div>
-
-
-          <div class="screen-footer">
-
-            <button
-              class="primary-button"
-              onclick="finishRound()"
-            >
-              C'EST FAIT
-            </button>
-
-          </div>
-
-
+        <div class="game-label">
+          RÉUSSI
         </div>
 
-      </section>
-
-    `;
-  }
-
-
-  /*
-    Résolution générique
-  */
-
-  return `
-
-    <section class="screen">
-
-      <div class="screen-inner">
-
-
-        <div class="screen-main centered">
-
-          <p class="eyebrow">
-            TERMINÉ
-          </p>
-
-
-          <h1 class="title">
-            Tour terminé.
-          </h1>
-
+        <div class="game-main-text">
+          Bien joué.
         </div>
 
-
-        <div class="screen-footer">
-
-          <button
-            class="primary-button"
-            onclick="finishRound()"
-          >
-            TOUR SUIVANT
-          </button>
-
-        </div>
-
+        <p class="game-subtext">
+          ${escapeHTML(player)}
+          a réussi.
+        </p>
 
       </div>
+
+
+      <button
+        class="primary-btn"
+        onclick="finishRound()"
+      >
+        TOUR SUIVANT
+      </button>
 
     </section>
 
   `;
+
+}
+
+
+function renderFailureResultHTML(player) {
+
+  const root =
+    document.getElementById(
+      "app"
+    );
+
+
+  if (!root) {
+    return;
+  }
+
+
+  root.innerHTML = `
+
+    <section class="result-screen">
+
+      <div class="result-card">
+
+        <div class="game-label">
+          CONSÉQUENCE
+        </div>
+
+        <div class="game-main-text">
+          ${escapeHTML(player)}
+        </div>
+
+        <p class="game-subtext">
+          ${escapeHTML(
+            APP.consequence
+          )}
+        </p>
+
+      </div>
+
+
+      <button
+        class="primary-btn"
+        onclick="finishRound()"
+      >
+        C'EST FAIT
+      </button>
+
+    </section>
+
+  `;
+
+}
+
+
+/* ============================================================
+   RÉSULTAT VOTE
+   ============================================================ */
+
+function renderVoteResult() {
+
+  const target =
+    APP.result?.target ||
+    APP.voteTarget;
+
+
+  const consequence =
+    APP.currentGame?.penalty ===
+    PENALTIES.LOSER
+      ? getConsequence(
+          target
+        )
+      : null;
+
+
+  return `
+
+    <section class="result-screen">
+
+      <div class="result-card">
+
+        <div class="game-label">
+          RÉSULTAT
+        </div>
+
+        <div class="game-main-text">
+          ${escapeHTML(
+            target ||
+            "Vote terminé."
+          )}
+        </div>
+
+        <p class="game-subtext">
+          Le groupe a choisi cette personne.
+        </p>
+
+        ${
+          consequence
+            ? `
+              <div class="secret-subtext">
+                ${escapeHTML(
+                  consequence
+                )}
+              </div>
+            `
+            : ""
+        }
+
+      </div>
+
+
+      <button
+        class="primary-btn"
+        onclick="finishRound()"
+      >
+        C'EST FAIT
+      </button>
+
+    </section>
+
+  `;
+
+}
+
+
+/* ============================================================
+   RÉSULTAT CHOIX
+   ============================================================ */
+
+function renderChoiceResult() {
+
+  return `
+
+    <section class="result-screen">
+
+      <div class="result-card">
+
+        <div class="game-label">
+          CHOIX
+        </div>
+
+        <div class="game-main-text">
+          ${escapeHTML(
+            APP.selectedChoice
+          )}
+        </div>
+
+        <p class="game-subtext">
+          Le groupe peut maintenant débattre.
+        </p>
+
+      </div>
+
+
+      <button
+        class="primary-btn"
+        onclick="finishRound()"
+      >
+        TOUR SUIVANT
+      </button>
+
+    </section>
+
+  `;
+
+}
+
+
+/* ============================================================
+   RÉSULTAT GÉNÉRIQUE
+   ============================================================ */
+
+function renderGenericResult() {
+
+  return `
+
+    <section class="result-screen">
+
+      <div class="result-card">
+
+        <div class="game-label">
+          TERMINÉ
+        </div>
+
+        <div class="game-main-text">
+          Tour terminé.
+        </div>
+
+      </div>
+
+
+      <button
+        class="primary-btn"
+        onclick="finishRound()"
+      >
+        TOUR SUIVANT
+      </button>
+
+    </section>
+
+  `;
+
 }
 
 
@@ -2976,10 +2768,6 @@ function renderFinalResolve(game) {
 
 function getConsequence(player) {
 
-  const name =
-    player || "La personne concernée";
-
-
   if (
     typeof CONFIG !==
     "undefined" &&
@@ -2987,10 +2775,11 @@ function getConsequence(player) {
   ) {
 
     return CONFIG.PENALTIES.DEFAULT;
+
   }
 
-
   return "1 gorgée ou une alternative sans alcool";
+
 }
 
 
@@ -3003,6 +2792,7 @@ function finishRound() {
   stopTimer();
 
   startNextRound();
+
 }
 
 
@@ -3010,9 +2800,40 @@ function finishRound() {
    TIMER
    ============================================================ */
 
-function startTimer(seconds, callback) {
+function startGameTimerIfNeeded() {
+
+  const game =
+    APP.currentGame;
+
+
+  if (
+    !game?.timer
+  ) {
+
+    return;
+
+  }
+
+
+  startTimer(
+    game.timer,
+    () => {
+
+      actionDone();
+
+    }
+  );
+
+}
+
+
+function startTimer(
+  seconds,
+  callback
+) {
 
   stopTimer();
+
 
   APP.timerRemaining =
     Number(seconds) || 0;
@@ -3023,6 +2844,7 @@ function startTimer(seconds, callback) {
   ) {
 
     return;
+
   }
 
 
@@ -3032,11 +2854,13 @@ function startTimer(seconds, callback) {
 
         APP.timerRemaining--;
 
+
         if (
           APP.timerRemaining <= 0
         ) {
 
           stopTimer();
+
 
           if (
             typeof callback ===
@@ -3044,22 +2868,28 @@ function startTimer(seconds, callback) {
           ) {
 
             callback();
+
           }
 
           return;
+
         }
+
 
         render();
 
       },
       1000
     );
+
 }
 
 
 function stopTimer() {
 
-  if (APP.timer) {
+  if (
+    APP.timer
+  ) {
 
     clearInterval(
       APP.timer
@@ -3067,43 +2897,13 @@ function stopTimer() {
 
     APP.timer =
       null;
+
   }
+
 
   APP.timerRemaining =
     0;
-}
 
-
-/* ============================================================
-   HELPERS GAME FLOW
-   ============================================================ */
-
-function getCurrentGamePhaseSafe() {
-
-  if (
-    typeof getCurrentGamePhase ===
-    "function"
-  ) {
-
-    return getCurrentGamePhase();
-  }
-
-  return APP.currentGame?.flow?.[0] ||
-    null;
-}
-
-
-function nextGamePhaseSafe() {
-
-  if (
-    typeof nextGamePhase ===
-    "function"
-  ) {
-
-    return nextGamePhase();
-  }
-
-  return null;
 }
 
 
@@ -3113,14 +2913,14 @@ function nextGamePhaseSafe() {
 
 function showToast(message) {
 
-  const existing =
+  const old =
     document.querySelector(
       ".toast"
     );
 
 
-  if (existing) {
-    existing.remove();
+  if (old) {
+    old.remove();
   }
 
 
@@ -3129,8 +2929,10 @@ function showToast(message) {
       "div"
     );
 
+
   toast.className =
     "toast";
+
 
   toast.textContent =
     message;
@@ -3155,6 +2957,7 @@ function showToast(message) {
       },
       2500
     );
+
 }
 
 
@@ -3181,18 +2984,19 @@ window.SOIRE_DEBUG = {
         ? QUESTIONS
         : {},
 
-  flow:
+  currentPhase:
     () =>
-      typeof debugGameFlow ===
-      "function"
-        ? debugGameFlow()
-        : null,
+      getCurrentPhase(),
 
-  validate:
+  currentGame:
     () =>
-      typeof validateGamesDatabase ===
+      APP.currentGame,
+
+  validateGames:
+    () =>
+      typeof validateGames ===
       "function"
-        ? validateGamesDatabase()
+        ? validateGames()
         : null
 
 };
