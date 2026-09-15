@@ -1,32 +1,36 @@
 /* ============================================================
    SOIRÉE — GAMES DATABASE
-   BUILD 08.7
+   BUILD 08.9
    ============================================================
 
-   RÈGLE DE FLOW
-   ------------------------------------------------------------
-   Jeu public simple :
-   ACTION → VOTE/RESOLVE
+   FLOW UNIQUE
 
-   Jeu avec vote :
+   JEU PUBLIC AVEC VOTE
    ACTION → VOTE → RESOLVE
 
-   Jeu secret :
+   JEU PUBLIC SIMPLE
+   ACTION → SUCCESS_CHECK
+   ou
+   ACTION → RESOLVE
+
+   JEU SECRET
    PASS_SECRET → SECRET_ACTION → SUCCESS_CHECK
 
-   Mission secrète :
+   MISSION SECRÈTE
    PASS_SECRET → SECRET_ACTION
 
-   Aucune phase technique :
+   AUCUNE PHASE TECHNIQUE :
    - INTRO
    - SELECT_TARGET
    - SELECT_PLAYERS
    - PENALTY
    - RETURN_PHONE
-   - CONFIRMATION
+   - RESULT
+   - NEXT
+   - PLAY
    ============================================================ */
 
-const GAME_DATABASE_VERSION = "08.7";
+const GAME_DATABASE_VERSION = "08.9";
 
 
 /* ============================================================
@@ -59,8 +63,17 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 1,
+    cooldown: 6,
+
     actor: A.NONE,
-    target: T.ONE,
+
+    /*
+     * IMPORTANT :
+     * le groupe choisit lui-même la cible.
+     * Aucune cible ne doit être tirée avant le vote.
+     */
+    target: T.NONE,
 
     phone: false,
 
@@ -90,8 +103,11 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 1,
+    cooldown: 6,
+
     actor: A.NONE,
-    target: T.ONE,
+    target: T.NONE,
 
     phone: false,
 
@@ -121,8 +137,11 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 1,
+    cooldown: 7,
+
     actor: A.NONE,
-    target: T.ONE,
+    target: T.NONE,
 
     phone: false,
 
@@ -151,6 +170,9 @@ const GAMES = [
 
     minPlayers: 3,
     maxPlayers: 12,
+
+    intensity: 1,
+    cooldown: 8,
 
     actor: A.TARGET,
     target: T.ONE,
@@ -181,8 +203,11 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 2,
+    cooldown: 8,
+
     actor: A.NONE,
-    target: T.ONE,
+    target: T.NONE,
 
     phone: false,
 
@@ -211,6 +236,9 @@ const GAMES = [
 
     minPlayers: 3,
     maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 7,
 
     actor: A.RANDOM,
     target: T.NONE,
@@ -243,6 +271,9 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 2,
+    cooldown: 7,
+
     actor: A.RANDOM,
     target: T.NONE,
 
@@ -274,6 +305,9 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 2,
+    cooldown: 8,
+
     actor: A.TARGET,
     target: T.ONE,
 
@@ -303,6 +337,9 @@ const GAMES = [
 
     minPlayers: 3,
     maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 7,
 
     actor: A.RANDOM,
     target: T.NONE,
@@ -335,6 +372,9 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 2,
+    cooldown: 9,
+
     actor: A.TARGET,
     target: T.ONE,
 
@@ -364,6 +404,9 @@ const GAMES = [
 
     minPlayers: 3,
     maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 8,
 
     actor: A.TARGET,
     target: T.ONE,
@@ -396,6 +439,9 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 2,
+    cooldown: 8,
+
     actor: A.TARGET,
     target: T.ONE,
 
@@ -426,6 +472,9 @@ const GAMES = [
 
     minPlayers: 3,
     maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 9,
 
     actor: A.SELECTED,
     target: T.TWO,
@@ -458,6 +507,9 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 2,
+    cooldown: 9,
+
     actor: A.TARGET,
     target: T.ONE,
 
@@ -488,6 +540,9 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 2,
+    cooldown: 8,
+
     actor: A.TARGET,
     target: T.ONE,
 
@@ -516,6 +571,9 @@ const GAMES = [
 
     minPlayers: 3,
     maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 8,
 
     actor: A.TARGET,
     target: T.ONE,
@@ -547,6 +605,9 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 2,
+    cooldown: 8,
+
     actor: A.TARGET,
     target: T.ONE,
 
@@ -576,6 +637,9 @@ const GAMES = [
 
     minPlayers: 3,
     maxPlayers: 12,
+
+    intensity: 2,
+    cooldown: 8,
 
     actor: A.TARGET,
     target: T.ONE,
@@ -607,6 +671,9 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 2,
+    cooldown: 8,
+
     actor: A.TARGET,
     target: T.ONE,
 
@@ -637,6 +704,9 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 3,
+    cooldown: 8,
+
     actor: A.TARGET,
     target: T.ONE,
 
@@ -665,6 +735,9 @@ const GAMES = [
 
     minPlayers: 3,
     maxPlayers: 12,
+
+    intensity: 1,
+    cooldown: 6,
 
     actor: A.NONE,
     target: T.ALL,
@@ -695,6 +768,9 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 1,
+    cooldown: 6,
+
     actor: A.NONE,
     target: T.ALL,
 
@@ -724,6 +800,9 @@ const GAMES = [
     minPlayers: 3,
     maxPlayers: 12,
 
+    intensity: 3,
+    cooldown: 7,
+
     actor: A.TARGET,
     target: T.ONE,
 
@@ -743,15 +822,6 @@ const GAMES = [
 
 
 /* ============================================================
-   LOOKUP
-   ============================================================ */
-
-function getGameById(id) {
-  return GAMES.find(game => game.id === id) || null;
-}
-
-
-/* ============================================================
    VALIDATION
    ============================================================ */
 
@@ -760,92 +830,54 @@ function validateGames() {
   const errors = [];
 
   if (!Array.isArray(GAMES)) {
-    errors.push("GAMES doit être un tableau.");
     return {
       valid: false,
-      errors
+      errors: ["GAMES n'est pas un tableau."]
     };
   }
 
   const ids = new Set();
 
-  GAMES.forEach((game, index) => {
+  GAMES.forEach(game => {
 
     if (!game.id) {
-      errors.push(`Jeu ${index + 1} : ID manquant.`);
+      errors.push("Jeu sans ID.");
     }
 
-    if (game.id && ids.has(game.id)) {
+    if (ids.has(game.id)) {
       errors.push(`ID dupliqué : ${game.id}`);
     }
 
-    if (game.id) {
-      ids.add(game.id);
+    ids.add(game.id);
+
+    if (!Array.isArray(game.flow) || !game.flow.length) {
+      errors.push(`${game.id}: flow absent.`);
     }
-
-    if (!game.title) {
-      errors.push(`${game.id || "Jeu inconnu"} : titre manquant.`);
-    }
-
-    if (!game.type) {
-      errors.push(`${game.id || "Jeu inconnu"} : type manquant.`);
-    }
-
-    if (!Array.isArray(game.flow)) {
-      errors.push(`${game.id || "Jeu inconnu"} : flow invalide.`);
-      return;
-    }
-
-    /*
-     * Les anciennes phases ne doivent plus exister.
-     */
-
-    const forbiddenPhases = [
-      FLOW_PHASES.INTRO,
-      FLOW_PHASES.SELECT_TARGET,
-      FLOW_PHASES.SELECT_PLAYERS,
-      FLOW_PHASES.PENALTY
-    ];
-
-    game.flow.forEach(phase => {
-      if (forbiddenPhases.includes(phase)) {
-        errors.push(
-          `${game.id} : ancienne phase interdite détectée (${phase}).`
-        );
-      }
-    });
-
-    /*
-     * Les jeux avec téléphone doivent avoir
-     * PASS_SECRET + SECRET_ACTION.
-     */
-
-    if (game.phone) {
-
-      if (!game.flow.includes(FLOW_PHASES.PASS_SECRET)) {
-        errors.push(
-          `${game.id} : jeu téléphone sans PASS_SECRET.`
-        );
-      }
-
-      if (!game.flow.includes(FLOW_PHASES.SECRET_ACTION)) {
-        errors.push(
-          `${game.id} : jeu téléphone sans SECRET_ACTION.`
-        );
-      }
-    }
-
-    /*
-     * Un jeu de vote doit contenir VOTE.
-     */
 
     if (
-      game.voteMode &&
-      game.voteMode !== VOTE_MODES.NONE &&
-      !game.flow.includes(FLOW_PHASES.VOTE)
+      Array.isArray(game.flow) &&
+      game.flow.some(phase =>
+        LEGACY_FLOW_PHASES.has(phase)
+      )
     ) {
       errors.push(
-        `${game.id} : voteMode défini mais phase VOTE absente.`
+        `${game.id}: ancienne phase présente dans le flow.`
+      );
+    }
+
+    if (!QUESTIONS[game.contentPool]) {
+      errors.push(
+        `${game.id}: pool ${game.contentPool} introuvable.`
+      );
+    }
+
+    if (
+      game.target === T.ONE &&
+      game.actor === A.TARGET &&
+      !game.minPlayers
+    ) {
+      errors.push(
+        `${game.id}: cible/acteur incohérents.`
       );
     }
 
@@ -858,25 +890,11 @@ function validateGames() {
 }
 
 
-/* ============================================================
-   COMPATIBILITÉ AVEC L'ANCIEN SYSTÈME
-   ============================================================ */
-
 function validateGamesDatabase() {
   return validateGames();
 }
 
 
-/* ============================================================
-   DEBUG
-   ============================================================ */
-
-if (typeof window !== "undefined") {
-
-  window.GAMES = GAMES;
-  window.GAME_DATABASE_VERSION = GAME_DATABASE_VERSION;
-  window.getGameById = getGameById;
-  window.validateGames = validateGames;
-  window.validateGamesDatabase = validateGamesDatabase;
-
+function getGameById(id) {
+  return GAMES.find(game => game.id === id) || null;
 }
