@@ -1,39 +1,41 @@
 /* ============================================================
-   SOIRÉE — APPLICATION ENGINE
-   BUILD 08.7
+   SOIRÉE — APP
+   BUILD 08.8
    ============================================================
 
-   ARCHITECTURE FINALE
+   INTERFACE COMPATIBLE AVEC :
+   - config.js
+   - questions.js
+   - games.js BUILD 08.7
+   - gameFlow.js BUILD 08.7
 
-   JEU PUBLIC AVEC VOTE
-   ACTION → VOTE → RÉSOLUTION
+   OBJECTIF :
+   Un écran = une action claire.
 
-   JEU PUBLIC AVEC RÉUSSITE
-   ACTION → RÉUSSOLUTION
+   JEUX PUBLICS :
+   ACTION → VOTE → RÉSULTAT
 
-   JEU SECRET
-   PASSE LE TÉLÉPHONE → SECRET → RÉUSSITE ?
+   JEUX SECRETS :
+   TÉLÉPHONE → SECRET → RÉUSSITE ?
 
-   MISSION SECRÈTE
-   PASSE LE TÉLÉPHONE → SECRET
-
-   RÈGLES :
-   - Aucun INTRO supplémentaire
-   - Aucun SELECT_TARGET visible
-   - Aucun RETURN_PHONE
-   - Aucun RESULT technique
-   - Aucun PENALTY comme écran
-   - Aucun NEXT comme écran
-   - Une action principale par écran
-   - Le résultat et la conséquence sont réunis
+   AUCUNE :
+   - INTRO
+   - SELECT_TARGET
+   - SELECT_PLAYERS
+   - PENALTY
+   - RETURN_PHONE
+   - CONFIRMATION DE VOTE
    ============================================================ */
+
+
+const app = document.getElementById("app");
 
 
 /* ============================================================
-   ÉTAT APPLICATION
+   SESSION
    ============================================================ */
 
-const APP = {
+const session = {
 
   players: [],
 
@@ -41,104 +43,90 @@ const APP = {
 
   screen: "HOME",
 
-  round: 0,
+  history: [],
+
+  playerHistory: [],
 
   currentGame: null,
 
   currentContent: null,
 
+  currentTargets: [],
+
   currentActor: null,
 
-  currentTarget: null,
+  currentPair: [],
 
-  currentPlayers: [],
+  currentPhase: null,
+
+  round: 0,
+
+  votes: [],
 
   selectedChoice: null,
 
-  votes: {},
-
-  voteTarget: null,
-
   success: null,
 
-  consequence: null,
-
-  phaseIndex: 0,
-
-  timer: null,
-
-  timerRemaining: 0,
-
-  history: [],
-
-  recentFamilies: [],
-
-  playerHistory: [],
-
-  sessionStarted: false,
-
-  toastTimer: null
-
+  consequence: null
 };
 
 
 /* ============================================================
-   INITIALISATION
+   UTILITAIRES
    ============================================================ */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  initApp
-);
+function escapeHTML(value) {
+
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
 
-function initApp() {
+function randomItem(array) {
 
-  loadSession();
+  if (!Array.isArray(array) || !array.length) {
+    return null;
+  }
 
-  render();
+  return array[Math.floor(Math.random() * array.length)];
+}
 
-  window.addEventListener(
-    "beforeunload",
-    saveSession
-  );
 
+function shuffle(array) {
+
+  return [...array].sort(() => Math.random() - 0.5);
 }
 
 
 /* ============================================================
-   PERSISTENCE
+   SAUVEGARDE
    ============================================================ */
 
 function saveSession() {
 
-  try {
+  if (!CONFIG.SESSION.SAVE_TO_LOCAL_STORAGE) {
+    return;
+  }
 
-    if (
-      typeof CONFIG === "undefined" ||
-      !CONFIG.SESSION?.SAVE_TO_LOCAL_STORAGE
-    ) {
-      return;
-    }
+  try {
 
     localStorage.setItem(
       CONFIG.SESSION.STORAGE_KEY,
       JSON.stringify({
 
-        players:
-          APP.players,
+        players: session.players,
 
-        intensity:
-          APP.intensity,
+        intensity: session.intensity,
 
-        history:
-          APP.history.slice(-30),
+        history: session.history
+          .slice(-CONFIG.SESSION.MAX_HISTORY),
 
-        recentFamilies:
-          APP.recentFamilies.slice(-3),
-
-        playerHistory:
-          APP.playerHistory.slice(-20)
+        playerHistory: session.playerHistory
+          .slice(-20)
 
       })
     );
@@ -149,284 +137,53 @@ function saveSession() {
       "Impossible de sauvegarder la session.",
       error
     );
-
   }
-
 }
 
 
 function loadSession() {
 
+  if (!CONFIG.SESSION.SAVE_TO_LOCAL_STORAGE) {
+    return;
+  }
+
   try {
 
-    if (
-      typeof CONFIG === "undefined" ||
-      !CONFIG.SESSION?.SAVE_TO_LOCAL_STORAGE
-    ) {
-      return;
-    }
-
     const raw =
-      localStorage.getItem(
-        CONFIG.SESSION.STORAGE_KEY
-      );
+      localStorage.getItem(CONFIG.SESSION.STORAGE_KEY);
 
     if (!raw) {
       return;
     }
 
-    const data =
-      JSON.parse(raw);
+    const saved = JSON.parse(raw);
 
-    if (
-      Array.isArray(data.players)
-    ) {
-
-      APP.players =
-        data.players
-          .filter(Boolean)
-          .slice(0, 12);
-
+    if (Array.isArray(saved.players)) {
+      session.players = saved.players;
     }
 
     if (
-      data.intensity &&
-      (
-        typeof CONFIG.INTENSITY === "undefined" ||
-        CONFIG.INTENSITY[data.intensity]
-      )
+      saved.intensity &&
+      CONFIG.INTENSITY[saved.intensity]
     ) {
-
-      APP.intensity =
-        data.intensity;
-
+      session.intensity = saved.intensity;
     }
 
-    if (
-      Array.isArray(data.history)
-    ) {
-
-      APP.history =
-        data.history.slice(-30);
-
+    if (Array.isArray(saved.history)) {
+      session.history = saved.history;
     }
 
-    if (
-      Array.isArray(data.recentFamilies)
-    ) {
-
-      APP.recentFamilies =
-        data.recentFamilies.slice(-3);
-
-    }
-
-    if (
-      Array.isArray(data.playerHistory)
-    ) {
-
-      APP.playerHistory =
-        data.playerHistory.slice(-20);
-
+    if (Array.isArray(saved.playerHistory)) {
+      session.playerHistory = saved.playerHistory;
     }
 
   } catch (error) {
 
     console.warn(
-      "Session invalide.",
+      "Session sauvegardée illisible.",
       error
     );
-
   }
-
-}
-
-
-function clearSession() {
-
-  try {
-
-    if (
-      typeof CONFIG !== "undefined"
-    ) {
-
-      localStorage.removeItem(
-        CONFIG.SESSION.STORAGE_KEY
-      );
-
-    }
-
-  } catch (error) {}
-
-  APP.players = [];
-
-  APP.history = [];
-
-  APP.recentFamilies = [];
-
-  APP.playerHistory = [];
-
-  APP.round = 0;
-
-  resetCurrentTurn();
-
-}
-
-
-/* ============================================================
-   UTILITAIRES
-   ============================================================ */
-
-function escapeHTML(value) {
-
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-
-}
-
-
-function randomItem(array) {
-
-  if (
-    !Array.isArray(array) ||
-    !array.length
-  ) {
-
-    return null;
-
-  }
-
-  return array[
-    Math.floor(
-      Math.random() * array.length
-    )
-  ];
-
-}
-
-
-function shuffle(array) {
-
-  const result =
-    Array.isArray(array)
-      ? [...array]
-      : [];
-
-  for (
-    let i = result.length - 1;
-    i > 0;
-    i--
-  ) {
-
-    const j =
-      Math.floor(
-        Math.random() * (i + 1)
-      );
-
-    [
-      result[i],
-      result[j]
-    ] = [
-      result[j],
-      result[i]
-    ];
-
-  }
-
-  return result;
-
-}
-
-
-function getAvailablePlayers(exclude = []) {
-
-  const blocked =
-    new Set(
-      Array.isArray(exclude)
-        ? exclude
-        : [exclude]
-    );
-
-  let available =
-    APP.players.filter(
-      player =>
-        !blocked.has(player)
-    );
-
-  const recent =
-    APP.playerHistory.slice(-3);
-
-  const preferred =
-    available.filter(
-      player =>
-        !recent.includes(player)
-    );
-
-  if (preferred.length) {
-
-    available =
-      preferred;
-
-  }
-
-  return shuffle(
-    available
-  );
-
-}
-
-
-function choosePlayer(exclude = []) {
-
-  const player =
-    randomItem(
-      getAvailablePlayers(
-        exclude
-      )
-    );
-
-  if (player) {
-
-    APP.playerHistory.push(
-      player
-    );
-
-    APP.playerHistory =
-      APP.playerHistory.slice(-20);
-
-  }
-
-  return player;
-
-}
-
-
-function chooseTwoPlayers() {
-
-  const players =
-    getAvailablePlayers();
-
-  const pair =
-    players.slice(0, 2);
-
-  pair.forEach(
-    player => {
-
-      APP.playerHistory.push(
-        player
-      );
-
-    }
-  );
-
-  APP.playerHistory =
-    APP.playerHistory.slice(-20);
-
-  return pair;
-
 }
 
 
@@ -434,233 +191,791 @@ function chooseTwoPlayers() {
    NAVIGATION
    ============================================================ */
 
-function setScreen(screen) {
+function navigate(screen) {
 
-  APP.screen =
-    screen;
-
-  render();
-
-}
-
-
-function goHome() {
-
-  stopTimer();
-
-  resetCurrentTurn();
-
-  APP.screen =
-    "HOME";
+  session.screen = screen;
 
   render();
-
-}
-
-
-function resetCurrentTurn() {
-
-  stopTimer();
-
-  APP.currentGame =
-    null;
-
-  APP.currentContent =
-    null;
-
-  APP.currentActor =
-    null;
-
-  APP.currentTarget =
-    null;
-
-  APP.currentPlayers =
-    [];
-
-  APP.selectedChoice =
-    null;
-
-  APP.votes =
-    {};
-
-  APP.voteTarget =
-    null;
-
-  APP.success =
-    null;
-
-  APP.consequence =
-    null;
-
-  APP.phaseIndex =
-    0;
-
 }
 
 
 /* ============================================================
-   RENDER PRINCIPAL
+   ROTATION DES JOUEURS
+   ============================================================ */
+
+function getAvailablePlayers() {
+
+  const recent =
+    session.playerHistory.slice(
+      -CONFIG.ROTATION.RECENT_PLAYER_LIMIT
+    );
+
+  const available =
+    session.players.filter(
+      player => !recent.includes(player)
+    );
+
+  return shuffle(
+    available.length
+      ? available
+      : session.players
+  );
+}
+
+
+function choosePlayer() {
+
+  const player =
+    randomItem(getAvailablePlayers());
+
+  if (player) {
+    session.playerHistory.push(player);
+  }
+
+  return player;
+}
+
+
+function chooseTwoPlayers() {
+
+  const available =
+    getAvailablePlayers();
+
+  let pair =
+    available.slice(0, 2);
+
+  if (pair.length < 2) {
+
+    pair =
+      shuffle(session.players).slice(0, 2);
+  }
+
+  pair.forEach(player => {
+
+    if (player) {
+      session.playerHistory.push(player);
+    }
+
+  });
+
+  return pair;
+}
+
+
+/* ============================================================
+   SÉLECTION DU JEU
+   ============================================================ */
+
+function chooseGame() {
+
+  let candidates =
+    GAMES.filter(game => {
+
+      if (
+        session.players.length <
+        (game.minPlayers ?? CONFIG.PLAYERS.MIN)
+      ) {
+        return false;
+      }
+
+      if (
+        session.players.length >
+        (game.maxPlayers ?? CONFIG.PLAYERS.MAX)
+      ) {
+        return false;
+      }
+
+      const cooldown =
+        game.cooldown ?? CONFIG.COOLDOWN.GAME;
+
+      if (
+        session.history
+          .slice(-cooldown)
+          .includes(game.id)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+
+
+  /*
+   * Si tous les jeux sont en cooldown,
+   * on autorise la rotation complète.
+   */
+
+  if (!candidates.length) {
+
+    candidates =
+      GAMES.filter(game => {
+
+        return (
+          session.players.length >=
+            (game.minPlayers ?? CONFIG.PLAYERS.MIN) &&
+
+          session.players.length <=
+            (game.maxPlayers ?? CONFIG.PLAYERS.MAX)
+        );
+
+      });
+  }
+
+
+  if (!candidates.length) {
+    return null;
+  }
+
+
+  const intensity =
+    getIntensityConfig(session.intensity);
+
+
+  const recentFamilies =
+    session.history
+      .slice(-2)
+      .map(id => {
+
+        const game =
+          GAMES.find(item => item.id === id);
+
+        return game?.family;
+
+      })
+      .filter(Boolean);
+
+
+  const scored =
+    candidates.map(game => {
+
+      let score = 100;
+
+
+      /*
+       * Intensité
+       */
+
+      if (
+        typeof game.intensity === "number"
+      ) {
+
+        score -=
+          Math.abs(
+            game.intensity -
+            intensity.preferredIntensity
+          ) * 20;
+      }
+
+
+      /*
+       * Diversité des familles
+       */
+
+      const familyCount =
+        recentFamilies.filter(
+          family => family === game.family
+        ).length;
+
+
+      if (
+        familyCount >=
+        CONFIG.DIVERSITY.MAX_SAME_FAMILY
+      ) {
+
+        score -= 60;
+      }
+
+
+      if (
+        session.currentGame?.family ===
+        game.family
+      ) {
+
+        score -= 20;
+      }
+
+
+      /*
+       * Bonus selon intensité
+       */
+
+      if (
+        game.family === "IMPRO"
+      ) {
+
+        score +=
+          10 * intensity.chaosMultiplier;
+      }
+
+
+      if (
+        game.family === "HOT"
+      ) {
+
+        score +=
+          15 * intensity.hotMultiplier;
+      }
+
+
+      score +=
+        Math.random() * 35;
+
+
+      return {
+        game,
+        score: Math.max(1, score)
+      };
+
+    });
+
+
+  const total =
+    scored.reduce(
+      (sum, item) => sum + item.score,
+      0
+    );
+
+
+  let roll =
+    Math.random() * total;
+
+
+  for (const item of scored) {
+
+    roll -= item.score;
+
+    if (roll <= 0) {
+      return item.game;
+    }
+  }
+
+
+  return scored[0].game;
+}
+
+
+/* ============================================================
+   CONTENU
+   ============================================================ */
+
+function getContentForGame(game) {
+
+  const pool =
+    QUESTIONS[game.contentPool];
+
+
+  if (
+    !Array.isArray(pool) ||
+    !pool.length
+  ) {
+
+    console.warn(
+      `Pool introuvable : ${game.contentPool}`
+    );
+
+    return null;
+  }
+
+
+  /*
+   * Les questions HOT respectent l'intensité.
+   */
+
+  if (
+    game.contentPool === "HOT"
+  ) {
+
+    const maxIntensity =
+      session.intensity === "COOL"
+        ? 2
+        : 3;
+
+
+    const filtered =
+      pool.filter(
+        item =>
+          typeof item?.intensity !== "number" ||
+          item.intensity <= maxIntensity
+      );
+
+
+    return randomItem(
+      filtered.length
+        ? filtered
+        : pool
+    );
+  }
+
+
+  return randomItem(pool);
+}
+
+
+/* ============================================================
+   ATTRIBUTION DES RÔLES
+   ============================================================ */
+
+function assignRoles(game) {
+
+  session.currentActor = null;
+
+  session.currentTargets = [];
+
+  session.currentPair = [];
+
+
+  switch (game.target) {
+
+
+    case TARGET_MODES.ONE: {
+
+      const player =
+        choosePlayer();
+
+      session.currentActor =
+        player;
+
+      session.currentTargets =
+        player
+          ? [player]
+          : [];
+
+      break;
+    }
+
+
+    case TARGET_MODES.TWO: {
+
+      const pair =
+        chooseTwoPlayers();
+
+      session.currentPair =
+        pair;
+
+      session.currentTargets =
+        [...pair];
+
+      session.currentActor =
+        pair[0] || null;
+
+      break;
+    }
+
+
+    case TARGET_MODES.ALL: {
+
+      session.currentTargets =
+        [...session.players];
+
+      break;
+    }
+
+
+    case TARGET_MODES.NONE:
+    default:
+
+      break;
+  }
+
+
+  /*
+   * Certains jeux définissent explicitement
+   * leur acteur comme TARGET.
+   */
+
+  if (
+    game.actor === ACTOR_MODES.RANDOM &&
+    !session.currentActor
+  ) {
+
+    session.currentActor =
+      choosePlayer();
+  }
+
+
+  if (
+    game.actor === ACTOR_MODES.TARGET &&
+    session.currentTargets.length
+  ) {
+
+    session.currentActor =
+      session.currentTargets[0];
+  }
+}
+
+
+/* ============================================================
+   PRÉPARATION DU TOUR
+   ============================================================ */
+
+function prepareRound() {
+
+  const game =
+    chooseGame();
+
+
+  if (!game) {
+    return null;
+  }
+
+
+  session.currentGame =
+    game;
+
+
+  session.currentContent =
+    getContentForGame(game);
+
+
+  assignRoles(game);
+
+
+  session.currentPhase =
+    game.flow?.[0] || null;
+
+
+  session.round++;
+
+
+  session.history.push(
+    game.id
+  );
+
+
+  session.votes = [];
+
+  session.selectedChoice = null;
+
+  session.success = null;
+
+  session.consequence = null;
+
+
+  saveSession();
+
+
+  /*
+   * Synchronisation avec le moteur central.
+   */
+
+  if (
+    typeof resetGameFlow === "function"
+  ) {
+
+    resetGameFlow();
+  }
+
+
+  if (
+    typeof startGameFlow === "function"
+  ) {
+
+    startGameFlow(
+      game,
+      session.players
+    );
+
+  }
+
+
+  if (
+    typeof setCurrentActor === "function"
+  ) {
+
+    setCurrentActor(
+      session.currentActor
+    );
+  }
+
+
+  if (
+    typeof setCurrentTarget === "function"
+  ) {
+
+    setCurrentTarget(
+      session.currentTargets[0] || null
+    );
+  }
+
+
+  if (
+    typeof setCurrentPlayers === "function"
+  ) {
+
+    setCurrentPlayers(
+      session.currentPair.length
+        ? session.currentPair
+        : session.players
+    );
+  }
+
+
+  if (
+    typeof setPublicContent === "function"
+  ) {
+
+    setPublicContent(
+      session.currentContent
+    );
+  }
+
+
+  if (
+    typeof setPrivateContent === "function"
+  ) {
+
+    setPrivateContent(
+      session.currentContent
+    );
+  }
+
+
+  return game;
+}
+
+
+/* ============================================================
+   DÉMARRAGE
+   ============================================================ */
+
+function startRound() {
+
+  if (
+    session.players.length <
+    CONFIG.PLAYERS.MIN
+  ) {
+
+    showToast(
+      `Il faut au moins ${CONFIG.PLAYERS.MIN} joueurs.`
+    );
+
+    return;
+  }
+
+
+  const game =
+    prepareRound();
+
+
+  if (!game) {
+
+    showToast(
+      "Aucun jeu compatible."
+    );
+
+    return;
+  }
+
+
+  session.screen =
+    "GAME";
+
+
+  render();
+}
+
+
+/* ============================================================
+   PHASE SUIVANTE
+   ============================================================ */
+
+function advancePhase() {
+
+  /*
+   * Le moteur central est prioritaire.
+   */
+
+  let next = null;
+
+
+  if (
+    typeof nextGamePhase === "function"
+  ) {
+
+    next =
+      nextGamePhase();
+  }
+
+
+  /*
+   * Sécurité si le moteur ne retourne rien.
+   */
+
+  if (!next) {
+
+    finishRound();
+
+    return;
+  }
+
+
+  session.currentPhase =
+    next;
+
+
+  /*
+   * Synchronisation des données.
+   */
+
+  if (
+    typeof GAME_FLOW !== "undefined"
+  ) {
+
+    if (
+      GAME_FLOW.currentActor
+    ) {
+
+      session.currentActor =
+        GAME_FLOW.currentActor;
+    }
+
+    if (
+      GAME_FLOW.currentTarget &&
+      !session.currentTargets.length
+    ) {
+
+      session.currentTargets = [
+        GAME_FLOW.currentTarget
+      ];
+    }
+  }
+
+
+  render();
+}
+
+
+/* ============================================================
+   FIN DE TOUR
+   ============================================================ */
+
+function finishRound() {
+
+  session.currentPhase =
+    null;
+
+
+  session.currentContent =
+    null;
+
+
+  if (
+    typeof clearPrivateContent === "function"
+  ) {
+
+    clearPrivateContent();
+  }
+
+
+  /*
+   * On lance directement le tour suivant.
+   * Pas d'écran "TOUR TERMINÉ".
+   */
+
+  startRound();
+}
+
+
+/* ============================================================
+   RENDU GLOBAL
    ============================================================ */
 
 function render() {
 
-  const root =
-    document.getElementById(
-      "app"
-    );
+  if (
+    session.screen === "HOME"
+  ) {
 
-  if (!root) {
-    return;
+    return renderHome();
   }
 
-  switch (APP.screen) {
 
-    case "HOME":
+  if (
+    session.screen === "PLAYERS"
+  ) {
 
-      root.innerHTML =
-        renderHome();
-
-      break;
-
-
-    case "PLAYERS":
-
-      root.innerHTML =
-        renderPlayers();
-
-      break;
-
-
-    case "INTENSITY":
-
-      root.innerHTML =
-        renderIntensity();
-
-      break;
-
-
-    case "ACTION":
-
-      root.innerHTML =
-        renderAction();
-
-      break;
-
-
-    case "VOTE":
-
-      root.innerHTML =
-        renderVote();
-
-      break;
-
-
-    case "RESOLVE":
-
-      root.innerHTML =
-        renderResolve();
-
-      break;
-
-
-    case "PASS_SECRET":
-
-      root.innerHTML =
-        renderPassSecret();
-
-      break;
-
-
-    case "SECRET_ACTION":
-
-      root.innerHTML =
-        renderSecretAction();
-
-      break;
-
-
-    default:
-
-      root.innerHTML =
-        renderHome();
-
+    return renderPlayers();
   }
 
+
+  if (
+    session.screen === "INTENSITY"
+  ) {
+
+    return renderIntensity();
+  }
+
+
+  if (
+    session.screen === "OPTIONS"
+  ) {
+
+    return renderOptions();
+  }
+
+
+  if (
+    session.screen === "GAME"
+  ) {
+
+    return renderGame();
+  }
+
+
+  session.screen =
+    "HOME";
+
+  renderHome();
 }
 
 
 /* ============================================================
-   HOME
+   ACCUEIL
    ============================================================ */
 
 function renderHome() {
 
-  return `
+  app.innerHTML = `
 
-    <section class="home">
+    <section class="screen home">
 
-      <div class="logo">
+      <div class="brand">
         SOIRÉE
       </div>
 
-      <p class="subtitle">
+      <div class="subtitle">
         PARTY GAME
-      </p>
+      </div>
+
+      <div class="home-spacer"></div>
 
       <button
         class="primary-btn"
-        onclick="openPlayers()"
+        onclick="navigate('PLAYERS')"
       >
-        LANCER LA SOIRÉE
+        JOUER
+      </button>
+
+      <button
+        class="secondary-btn"
+        onclick="navigate('OPTIONS')"
+      >
+        OPTIONS
       </button>
 
       ${
-        APP.players.length >= 3
+        session.players.length
           ? `
-            <button
-              class="secondary-btn"
-              onclick="resumeSession()"
-            >
-              REPRENDRE LA SOIRÉE
-            </button>
+            <p class="muted">
+              ${session.players.length}
+              joueurs enregistrés
+            </p>
           `
           : ""
       }
 
     </section>
-
   `;
-
-}
-
-
-function openPlayers() {
-
-  APP.screen =
-    "PLAYERS";
-
-  render();
-
-}
-
-
-function resumeSession() {
-
-  if (
-    APP.players.length < 3
-  ) {
-
-    openPlayers();
-
-    return;
-
-  }
-
-  APP.sessionStarted =
-    true;
-
-  startNextRound();
-
 }
 
 
@@ -671,75 +986,80 @@ function resumeSession() {
 function renderPlayers() {
 
   const rows =
-    APP.players.length
+    session.players
+      .map(
+        (player, index) => `
 
-      ? APP.players.map(
-          (player, index) => `
+          <div class="player-row">
 
-            <div class="player-row">
+            <span>
+              ${escapeHTML(player)}
+            </span>
 
-              <input
-                class="input"
-                value="${escapeHTML(player)}"
-                data-player-index="${index}"
-                maxlength="20"
-                autocomplete="off"
-                placeholder="Prénom"
-              >
+            <button
+              class="icon-btn"
+              aria-label="Supprimer ${escapeHTML(player)}"
+              onclick="removePlayer(${index})"
+            >
+              ×
+            </button>
 
-              <button
-                type="button"
-                onclick="removePlayer(${index})"
-              >
-                ×
-              </button>
-
-            </div>
-
-          `
-        ).join("")
-
-      : `
-          <div class="empty-state">
-            Ajoute les joueurs de la soirée.
           </div>
-        `;
+        `
+      )
+      .join("");
 
 
-  return `
+  app.innerHTML = `
 
-    <section class="players-screen">
+    <section class="screen players-screen">
 
       <header class="screen-header">
 
         <button
           class="back-btn"
-          onclick="goHome()"
+          onclick="navigate('HOME')"
         >
           ‹
         </button>
 
-        <div>
-          Joueurs
-        </div>
+        <h1>
+          JOUEURS
+        </h1>
 
-        <span class="players-count">
-          ${APP.players.length}/12
-        </span>
+        <span></span>
 
       </header>
 
 
+      <div class="count">
+        ${session.players.length}/${CONFIG.PLAYERS.MAX}
+      </div>
+
+
       <div class="player-list">
 
-        ${rows}
+        ${
+          rows ||
+          `
+            <div class="empty">
+              Ajoute les personnes présentes.
+            </div>
+          `
+        }
 
       </div>
 
 
       <button
         class="secondary-btn"
-        onclick="addPlayer()"
+        ${
+          session.players.length >=
+          CONFIG.PLAYERS.MAX
+            ? "disabled"
+            : ""
+        }
+        onclick="openPlayerModal()"
       >
         + AJOUTER UN JOUEUR
       </button>
@@ -747,140 +1067,179 @@ function renderPlayers() {
 
       <button
         class="primary-btn"
-        onclick="validatePlayers()"
+        ${
+          session.players.length <
+          CONFIG.PLAYERS.MIN
+            ? "disabled"
+            : ""
+        }
+        onclick="navigate('INTENSITY')"
       >
         CONTINUER
       </button>
 
     </section>
-
   `;
-
 }
 
 
-function addPlayer() {
+/* ============================================================
+   MODALE JOUEUR
+   ============================================================ */
+
+function openPlayerModal() {
+
+  app.insertAdjacentHTML(
+    "beforeend",
+    `
+
+      <div
+        class="modal-backdrop"
+        id="player-modal"
+      >
+
+        <form
+          class="modal"
+          onsubmit="confirmAddPlayer(event)"
+        >
+
+          <h2>
+            Nouveau joueur
+          </h2>
+
+          <input
+            id="player-name"
+            maxlength="20"
+            autocomplete="off"
+            placeholder="Prénom"
+            autofocus
+          >
+
+
+          <div class="modal-actions">
+
+            <button
+              type="button"
+              class="secondary-btn"
+              onclick="closePlayerModal()"
+            >
+              ANNULER
+            </button>
+
+            <button
+              class="primary-btn"
+              type="submit"
+            >
+              AJOUTER
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+    `
+  );
+
+
+  setTimeout(
+    () =>
+      document
+        .getElementById("player-name")
+        ?.focus(),
+    50
+  );
+}
+
+
+function closePlayerModal() {
+
+  document
+    .getElementById("player-modal")
+    ?.remove();
+}
+
+
+function confirmAddPlayer(event) {
+
+  event.preventDefault();
+
+
+  const input =
+    document.getElementById(
+      "player-name"
+    );
+
+
+  if (!input) {
+    return;
+  }
+
+
+  const name =
+    input.value
+      .trim()
+      .replace(/\s+/g, " ");
+
+
+  if (!name) {
+    return;
+  }
+
 
   if (
-    APP.players.length >= 12
+    session.players.some(
+      player =>
+        player.toLowerCase() ===
+        name.toLowerCase()
+    )
   ) {
 
     showToast(
-      "Maximum 12 joueurs."
+      "Ce joueur existe déjà."
     );
 
     return;
-
   }
 
-  APP.players.push("");
+
+  if (
+    session.players.length >=
+    CONFIG.PLAYERS.MAX
+  ) {
+
+    showToast(
+      "Nombre maximum de joueurs atteint."
+    );
+
+    return;
+  }
+
+
+  session.players.push(
+    name
+  );
+
+
+  saveSession();
+
+  closePlayerModal();
 
   render();
-
 }
 
 
 function removePlayer(index) {
 
-  if (
-    index < 0 ||
-    index >= APP.players.length
-  ) {
-    return;
-  }
-
-  APP.players.splice(
+  session.players.splice(
     index,
     1
   );
 
-  render();
-
-}
-
-
-function syncPlayerInputs() {
-
-  document
-    .querySelectorAll(
-      "[data-player-index]"
-    )
-    .forEach(
-      input => {
-
-        const index =
-          Number(
-            input.dataset.playerIndex
-          );
-
-        APP.players[index] =
-          String(
-            input.value || ""
-          )
-          .trim()
-          .replace(
-            /\s+/g,
-            " "
-          );
-
-      }
-    );
-
-}
-
-
-function validatePlayers() {
-
-  syncPlayerInputs();
-
-  APP.players =
-    APP.players
-      .filter(Boolean);
-
-
-  if (
-    APP.players.length < 3
-  ) {
-
-    showToast(
-      "Il faut au moins 3 joueurs."
-    );
-
-    render();
-
-    return;
-
-  }
-
-
-  const normalized =
-    APP.players.map(
-      player =>
-        player.toLowerCase()
-    );
-
-
-  if (
-    new Set(normalized).size !==
-    normalized.length
-  ) {
-
-    showToast(
-      "Les prénoms doivent être différents."
-    );
-
-    return;
-
-  }
-
-
-  APP.screen =
-    "INTENSITY";
 
   saveSession();
 
   render();
-
 }
 
 
@@ -888,641 +1247,516 @@ function validatePlayers() {
    INTENSITÉ
    ============================================================ */
 
-const INTENSITIES = [
-
-  {
-    id: "COOL",
-    title: "COOL",
-    description:
-      "Tranquille, drôle et accessible."
-  },
-
-  {
-    id: "CLASSIQUE",
-    title: "CLASSIQUE",
-    description:
-      "Le meilleur équilibre pour une soirée."
-  },
-
-  {
-    id: "CHAUD",
-    title: "CHAUD",
-    description:
-      "Plus personnel, plus intense."
-  },
-
-  {
-    id: "CHAOS",
-    title: "CHAOS",
-    description:
-      "Aucune retenue."
-  }
-
-];
-
-
 function renderIntensity() {
 
-  return `
+  const options = [
 
-    <section class="intensity-screen">
+    [
+      "COOL",
+      "Tranquille pour commencer."
+    ],
+
+    [
+      "CLASSIQUE",
+      "Le rythme équilibré."
+    ],
+
+    [
+      "CHAUD",
+      "Plus personnel et imprévisible."
+    ],
+
+    [
+      "CHAOS",
+      "Le mode sans temps mort."
+    ]
+
+  ];
+
+
+  app.innerHTML = `
+
+    <section class="screen intensity-screen">
 
       <header class="screen-header">
 
         <button
           class="back-btn"
-          onclick="setScreen('PLAYERS')"
+          onclick="navigate('PLAYERS')"
         >
           ‹
         </button>
 
-        <div>
-          Intensité
-        </div>
+        <h1>
+          INTENSITÉ
+        </h1>
+
+        <span></span>
 
       </header>
 
 
       <div class="intensity-list">
 
-        ${INTENSITIES.map(
-          intensity => `
+        ${
+          options
+            .map(
+              ([id, description]) => `
 
-            <button
-              class="
-                intensity-card
-                ${
-                  APP.intensity ===
-                  intensity.id
-                    ? "selected"
-                    : ""
-                }
-              "
-              onclick="
-                selectIntensity('${intensity.id}')
-              "
-            >
+                <button
+                  class="intensity-card ${
+                    session.intensity === id
+                      ? "selected"
+                      : ""
+                  }"
+                  onclick="selectIntensity('${id}')"
+                >
 
-              <strong>
-                ${intensity.title}
-              </strong>
+                  <strong>
+                    ${id}
+                  </strong>
 
-              <span>
-                ${intensity.description}
-              </span>
+                  <span>
+                    ${description}
+                  </span>
 
-            </button>
-
-          `
-        ).join("")}
+                </button>
+              `
+            )
+            .join("")
+        }
 
       </div>
 
 
       <button
         class="primary-btn"
-        onclick="launchParty()"
+        onclick="startRound()"
       >
-        COMMENCER
+        LANCER LA SOIRÉE
       </button>
 
     </section>
-
   `;
-
 }
 
 
-function selectIntensity(intensity) {
+function selectIntensity(value) {
 
   if (
-    !INTENSITIES.some(
-      item =>
-        item.id === intensity
-    )
+    !CONFIG.INTENSITY[value]
   ) {
     return;
   }
 
-  APP.intensity =
-    intensity;
+
+  session.intensity =
+    value;
+
 
   saveSession();
 
   render();
-
 }
 
 
 /* ============================================================
-   SÉLECTION DU JEU
+   OPTIONS
    ============================================================ */
 
-function getEligibleGames() {
+function renderOptions() {
 
-  if (
-    typeof GAMES === "undefined" ||
-    !Array.isArray(GAMES)
-  ) {
+  app.innerHTML = `
 
-    console.error(
-      "GAMES est introuvable."
+    <section class="screen options-screen">
+
+      <header class="screen-header">
+
+        <button
+          class="back-btn"
+          onclick="navigate('HOME')"
+        >
+          ‹
+        </button>
+
+        <h1>
+          OPTIONS
+        </h1>
+
+        <span></span>
+
+      </header>
+
+
+      <div class="option-card">
+
+        <strong>
+          Session locale
+        </strong>
+
+        <span>
+          Les joueurs et les préférences
+          restent sur cet appareil.
+        </span>
+
+      </div>
+
+
+      <button
+        class="secondary-btn"
+        onclick="clearSavedSession()"
+      >
+        RÉINITIALISER LA SESSION
+      </button>
+
+
+      <p class="muted">
+        Version BUILD 08.8
+      </p>
+
+    </section>
+  `;
+}
+
+
+function clearSavedSession() {
+
+  try {
+
+    localStorage.removeItem(
+      CONFIG.SESSION.STORAGE_KEY
     );
 
-    return [];
+  } catch (error) {
 
-  }
-
-
-  return GAMES.filter(
-    game => {
-
-      if (!game) {
-        return false;
-      }
-
-      if (
-        APP.players.length <
-        game.minPlayers
-      ) {
-        return false;
-      }
-
-      if (
-        APP.players.length >
-        game.maxPlayers
-      ) {
-        return false;
-      }
-
-      if (
-        game.contentPool &&
-        typeof QUESTIONS !== "undefined"
-      ) {
-
-        const pool =
-          QUESTIONS[
-            game.contentPool
-          ];
-
-        if (
-          !Array.isArray(pool) ||
-          !pool.length
-        ) {
-
-          return false;
-
-        }
-
-      }
-
-      return true;
-
-    }
-  );
-
-}
-
-
-function chooseGame() {
-
-  const eligible =
-    getEligibleGames();
-
-  if (!eligible.length) {
-    return null;
-  }
-
-
-  /* Évite les jeux récemment utilisés. */
-
-  let candidates =
-    eligible.filter(
-      game =>
-        !APP.history
-          .slice(-5)
-          .includes(game.id)
+    console.warn(
+      "Impossible de supprimer la session.",
+      error
     );
-
-
-  if (!candidates.length) {
-    candidates =
-      eligible;
   }
 
 
-  /* Évite la répétition immédiate
-     de la même famille. */
+  session.players = [];
 
-  const lastFamily =
-    APP.recentFamilies[
-      APP.recentFamilies.length - 1
-    ];
+  session.history = [];
 
+  session.playerHistory = [];
 
-  if (lastFamily) {
+  session.intensity =
+    "CLASSIQUE";
 
-    const differentFamily =
-      candidates.filter(
-        game =>
-          game.family !==
-          lastFamily
-      );
-
-    if (differentFamily.length) {
-
-      candidates =
-        differentFamily;
-
-    }
-
-  }
+  session.round = 0;
 
 
-  return randomItem(
-    candidates
-  );
-
+  render();
 }
 
 
 /* ============================================================
-   LANCEMENT D'UNE PARTIE
+   JEU — ROUTEUR
    ============================================================ */
 
-function launchParty() {
+function renderGame() {
 
-  APP.sessionStarted =
-    true;
-
-  APP.round =
-    0;
-
-  APP.history =
-    [];
-
-  APP.recentFamilies =
-    [];
-
-  saveSession();
-
-  startNextRound();
-
-}
-
-
-function startNextRound() {
-
-  stopTimer();
-
-  resetCurrentTurn();
-
-
-  const game =
-    chooseGame();
-
-
-  if (!game) {
-
-    showToast(
-      "Aucun jeu disponible pour ce nombre de joueurs."
-    );
-
-    return;
-
-  }
-
-
-  APP.round++;
-
-
-  APP.currentGame =
-    game;
-
-
-  APP.history.push(
-    game.id
-  );
-
-  APP.history =
-    APP.history.slice(-30);
-
-
-  APP.recentFamilies.push(
-    game.family
-  );
-
-  APP.recentFamilies =
-    APP.recentFamilies.slice(-3);
-
-
-  prepareGame(
-    game
-  );
-
-
-  saveSession();
-
-  enterFirstPhase();
-
-}
-
-
-/* ============================================================
-   PRÉPARATION DU JEU
-   ============================================================ */
-
-function prepareGame(game) {
-
-  const pool =
-    typeof QUESTIONS !== "undefined"
-      ? QUESTIONS[
-          game.contentPool
-        ]
-      : [];
-
-
-  APP.currentContent =
-    randomItem(pool);
-
-
-  /* ----------------------------------------------------------
-     ACTEUR
-     ---------------------------------------------------------- */
-
-  if (
-    game.actor ===
-    ACTOR_MODES.RANDOM
-  ) {
-
-    APP.currentActor =
-      choosePlayer();
-
-  }
-
-
-  /* ----------------------------------------------------------
-     CIBLE UNIQUE
-     ---------------------------------------------------------- */
-
-  if (
-    game.target ===
-    TARGET_MODES.ONE
-  ) {
-
-    const target =
-      choosePlayer(
-        APP.currentActor
-          ? [APP.currentActor]
-          : []
-      );
-
-    APP.currentTarget =
-      target;
-
-
-    if (
-      game.actor ===
-      ACTOR_MODES.TARGET
-    ) {
-
-      APP.currentActor =
-        target;
-
-    }
-
-  }
-
-
-  /* ----------------------------------------------------------
-     DEUX JOUEURS
-     ---------------------------------------------------------- */
-
-  if (
-    game.target ===
-    TARGET_MODES.TWO
-  ) {
-
-    APP.currentPlayers =
-      chooseTwoPlayers();
-
-    APP.currentActor =
-      APP.currentPlayers[0] ||
-      null;
-
-    APP.currentTarget =
-      APP.currentPlayers[1] ||
-      null;
-
-  }
-
-
-  /* ----------------------------------------------------------
-     TOUS
-     ---------------------------------------------------------- */
-
-  if (
-    game.target ===
-    TARGET_MODES.ALL
-  ) {
-
-    APP.currentPlayers =
-      [...APP.players];
-
-  }
-
-}
-
-
-/* ============================================================
-   PHASES
-   ============================================================ */
-
-function getGameFlow() {
-
-  if (
-    !APP.currentGame
-  ) {
-    return [];
-  }
-
-  return Array.isArray(
-    APP.currentGame.flow
-  )
-    ? APP.currentGame.flow
-    : [];
-
-}
-
-
-function getCurrentPhase() {
-
-  const flow =
-    getGameFlow();
-
-  return flow[
-    APP.phaseIndex
-  ] || null;
-
-}
-
-
-function enterFirstPhase() {
-
-  APP.phaseIndex =
-    0;
-
-  showCurrentPhase();
-
-}
-
-
-function advancePhase() {
-
-  const flow =
-    getGameFlow();
-
-
-  if (!flow.length) {
-
-    finishRound();
-
-    return;
-
-  }
-
-
-  APP.phaseIndex++;
-
-
-  if (
-    APP.phaseIndex >=
-    flow.length
-  ) {
-
-    finishRound();
-
-    return;
-
-  }
-
-
-  showCurrentPhase();
-
-}
-
-
-function showCurrentPhase() {
-
-  let phase =
-    getCurrentPhase();
-
-
-  /* Sécurité :
-     les anciennes phases techniques
-     ne doivent plus produire d'écran. */
-
-  while (
-    phase === FLOW_PHASES.INTRO ||
-    phase === FLOW_PHASES.SELECT_TARGET ||
-    phase === FLOW_PHASES.SELECT_PLAYERS ||
-    phase === FLOW_PHASES.PENALTY ||
-    phase === "PASS_PHONE" ||
-    phase === "PRIVATE_REVEAL" ||
-    phase === "RETURN_PHONE" ||
-    phase === "SECRET_REVEAL" ||
-    phase === "PLAY" ||
-    phase === "RESULT" ||
-    phase === "NEXT"
-  ) {
-
-    APP.phaseIndex++;
-
-    phase =
-      getCurrentPhase();
-
-
-    if (!phase) {
-
-      finishRound();
-
-      return;
-
-    }
-
-  }
+  const phase =
+    session.currentPhase;
 
 
   switch (phase) {
 
-    case FLOW_PHASES.ACTION:
-
-      APP.screen =
-        "ACTION";
-
-      render();
-
-      startGameTimerIfNeeded();
-
-      return;
-
-
-    case FLOW_PHASES.VOTE:
-
-      APP.screen =
-        "VOTE";
-
-      render();
-
-      return;
-
-
-    case FLOW_PHASES.RESOLVE:
-
-      APP.screen =
-        "RESOLVE";
-
-      render();
-
-      return;
-
-
-    case FLOW_PHASES.SUCCESS_CHECK:
-
-      APP.screen =
-        "RESOLVE";
-
-      render();
-
-      return;
-
 
     case FLOW_PHASES.PASS_SECRET:
 
-      APP.screen =
-        "PASS_SECRET";
-
-      render();
-
-      return;
+      return renderPassSecret();
 
 
     case FLOW_PHASES.SECRET_ACTION:
 
-      APP.screen =
-        "SECRET_ACTION";
+      return renderSecretAction();
 
-      render();
 
-      return;
+    case FLOW_PHASES.ACTION:
+
+      return renderAction();
+
+
+    case FLOW_PHASES.VOTE:
+
+      return renderVote();
+
+
+    case FLOW_PHASES.RESOLVE:
+
+      return renderResolve();
+
+
+    case FLOW_PHASES.SUCCESS_CHECK:
+
+      return renderSuccessCheck();
 
 
     default:
 
+      /*
+       * Sécurité :
+       * aucune ancienne phase ne doit
+       * réapparaître.
+       */
+
+      console.warn(
+        "Phase inconnue :",
+        phase
+      );
+
       finishRound();
 
+      return;
+  }
+}
+
+
+/* ============================================================
+   HEADER DE JEU
+   ============================================================ */
+
+function gameHeader() {
+
+  const game =
+    session.currentGame;
+
+
+  return `
+
+    <header class="game-header">
+
+      <span>
+        TOUR ${session.round}
+      </span>
+
+      <span>
+        ${escapeHTML(game?.family || "")}
+      </span>
+
+    </header>
+  `;
+}
+
+
+/* ============================================================
+   CONTENU PUBLIC
+   ============================================================ */
+
+function getPublicContentHTML() {
+
+  const game =
+    session.currentGame;
+
+  const content =
+    session.currentContent;
+
+
+  if (
+    !game ||
+    content == null
+  ) {
+
+    return `
+      <div class="main-text">
+        À vous de jouer.
+      </div>
+    `;
   }
 
+
+  switch (game.contentPool) {
+
+
+    case "CATEGORY":
+
+      return `
+        <div class="eyebrow">
+          CATÉGORIE
+        </div>
+
+        <div class="main-text">
+          ${escapeHTML(content)}
+        </div>
+
+        <p>
+          Chacun répond à son tour.
+        </p>
+      `;
+
+
+    case "WORD":
+
+      return `
+        <div class="eyebrow">
+          MOT
+        </div>
+
+        <div class="main-text">
+          ${escapeHTML(content)}
+        </div>
+
+        <p>
+          À vous de jouer.
+        </p>
+      `;
+
+
+    case "VOTE":
+
+    case "MAJORITY":
+
+    case "TARGET":
+
+    case "SUSPECT":
+
+      return `
+        <div class="main-text">
+          ${escapeHTML(content)}
+        </div>
+      `;
+
+
+    case "KNOWLEDGE":
+
+      return `
+        <div class="main-text">
+          ${escapeHTML(
+            content.question ||
+            content.text ||
+            content
+          )}
+        </div>
+      `;
+
+
+    case "HOT":
+
+      return `
+        <div class="eyebrow">
+          QUESTION CHAUDE
+        </div>
+
+        <div class="main-text">
+          ${escapeHTML(
+            content.text ||
+            content
+          )}
+        </div>
+      `;
+
+
+    case "CHOICE":
+
+      return `
+        <div class="main-text">
+          ${escapeHTML(
+            content.question ||
+            content.text ||
+            content
+          )}
+        </div>
+      `;
+
+
+    case "GROUP_TRUTH":
+
+      return `
+        <div class="main-text">
+          ${escapeHTML(content)}
+        </div>
+      `;
+
+
+    case "STATEMENTS":
+
+      return `
+        <div class="main-text">
+          ${escapeHTML(
+            content.instruction ||
+            content.text ||
+            ""
+          )}
+        </div>
+      `;
+
+
+    case "BLUFF":
+
+      return `
+        <div class="main-text">
+          ${escapeHTML(content)}
+        </div>
+      `;
+
+
+    /*
+     * IMPORTANT :
+     * aucun contenu secret n'est affiché
+     * sur un écran public.
+     */
+
+    case "FORBIDDEN_WORD":
+
+    case "TRAP_WORD":
+
+    case "MISSION":
+
+    case "TRAP_PROMPT":
+
+    case "DESCRIPTION":
+
+    case "MIME":
+
+    case "GUESS_WORD":
+
+    case "EXPRESSION":
+
+      return `
+        <div class="eyebrow">
+          DÉFI SECRET
+        </div>
+
+        <div class="main-text">
+          ${escapeHTML(
+            session.currentActor ||
+            "Joueur désigné"
+          )}
+        </div>
+
+        <p>
+          Le joueur désigné connaît
+          son défi.
+        </p>
+      `;
+
+
+    case "IMPRO":
+
+      return `
+        <div class="eyebrow">
+          MISSION
+        </div>
+
+        <div class="main-text">
+          ${escapeHTML(
+            content
+          )}
+        </div>
+      `;
+
+
+    default:
+
+      return `
+        <div class="main-text">
+          À vous de jouer.
+        </div>
+      `;
+  }
 }
 
 
@@ -1530,236 +1764,88 @@ function showCurrentPhase() {
    ACTION PUBLIQUE
    ============================================================ */
 
-function getActionTitle() {
-
-  const game =
-    APP.currentGame;
-
-  if (!game) {
-    return "DÉFI";
-  }
-
-
-  if (
-    game.contentPool ===
-    "HOT"
-  ) {
-
-    return (
-      APP.currentTarget ||
-      APP.currentActor ||
-      game.name
-    );
-
-  }
-
-
-  if (
-    game.contentPool ===
-    "STATEMENTS"
-  ) {
-
-    return (
-      APP.currentActor ||
-      game.name
-    );
-
-  }
-
-
-  if (
-    game.target ===
-    TARGET_MODES.ONE
-  ) {
-
-    return (
-      APP.currentActor ||
-      APP.currentTarget ||
-      game.name
-    );
-
-  }
-
-
-  if (
-    game.target ===
-    TARGET_MODES.TWO
-  ) {
-
-    return APP.currentPlayers.join(
-      " & "
-    );
-
-  }
-
-
-  return game.name;
-
-}
-
-
-function getActionPrompt() {
-
-  const content =
-    APP.currentContent;
-
-
-  if (
-    typeof content ===
-    "string"
-  ) {
-
-    return content;
-
-  }
-
-
-  if (
-    content?.question
-  ) {
-
-    return content.question;
-
-  }
-
-
-  if (
-    content?.text
-  ) {
-
-    return content.text;
-
-  }
-
-
-  if (
-    content?.instruction
-  ) {
-
-    return content.instruction;
-
-  }
-
-
-  if (
-    content?.word
-  ) {
-
-    return content.word;
-
-  }
-
-
-  return "Préparez-vous.";
-
-}
-
-
 function renderAction() {
 
   const game =
-    APP.currentGame;
-
-
-  if (!game) {
-    return "";
-  }
-
-
-  const prompt =
-    getActionPrompt();
-
-
-  /* ----------------------------------------------------------
-     CHOIX IMPOSSIBLE
-     ---------------------------------------------------------- */
-
-  if (
-    game.contentPool ===
-    "CHOICE"
-  ) {
-
-    return renderChoiceAction();
-
-  }
+    session.currentGame;
 
 
   const target =
-    APP.currentTarget;
+    session.currentTargets;
 
 
-  const targetLine =
-    target
-      ? `
-        <div class="game-target">
-          ${escapeHTML(target)}
-        </div>
-      `
-      : "";
+  let targetHTML = "";
 
 
-  let buttonLabel =
-    "TERMINÉ";
+  if (target.length) {
 
+    targetHTML = `
 
-  if (
-    game.type ===
-    GAME_TYPES.GROUP_VOTE ||
-    game.voteMode !==
-    VOTE_MODES.NONE
-  ) {
+      <div class="target-line">
 
-    buttonLabel =
-      "VOTER";
+        ${target
+          .map(escapeHTML)
+          .join(" • ")}
 
+      </div>
+    `;
   }
 
 
-  return `
+  /*
+   * Pour un vote, le premier écran
+   * doit déjà être le défi.
+   */
 
-    <section class="game-screen">
-
-      <div class="game-header">
-
-        <span>
-          TOUR ${APP.round}
-        </span>
-
-        <span>
-          ${escapeHTML(
-            game.family || "DÉFI"
-          )}
-        </span>
-
-      </div>
+  const isVote =
+    game?.flow?.includes(
+      FLOW_PHASES.VOTE
+    );
 
 
-      <div class="game-card">
+  const buttonLabel =
+    isVote
+      ? "VOTER"
+      : "TERMINÉ";
 
-        ${
-          targetLine
-        }
 
-        <div class="game-label">
-          ${escapeHTML(
-            game.name
-          )}
+  app.innerHTML = `
+
+    <section class="screen game-screen">
+
+      ${gameHeader()}
+
+      ${targetHTML}
+
+
+      <div class="game-card play-card">
+
+        <div class="eyebrow">
+
+          ${
+            isVote
+              ? "VOTE"
+              : escapeHTML(
+                  game?.title ||
+                  "DÉFI"
+                )
+          }
+
         </div>
 
-        <div class="game-main-text">
-          ${escapeHTML(
-            prompt
-          )}
-        </div>
 
         ${
-          game.timer
+          isVote
             ? `
-              <div class="timer">
-                ${APP.timerRemaining || game.timer}s
+              <div class="main-text">
+                ${escapeHTML(
+                  session.currentContent?.question ||
+                  session.currentContent?.text ||
+                  session.currentContent
+                )}
               </div>
             `
-            : ""
+            : getPublicContentHTML()
         }
 
       </div>
@@ -1767,130 +1853,289 @@ function renderAction() {
 
       <button
         class="primary-btn"
-        onclick="actionDone()"
+        onclick="advancePhase()"
       >
         ${buttonLabel}
       </button>
 
     </section>
-
   `;
-
-}
-
-
-function actionDone() {
-
-  stopTimer();
-
-  advancePhase();
-
 }
 
 
 /* ============================================================
-   CHOIX
+   TÉLÉPHONE
    ============================================================ */
 
-function renderChoiceAction() {
+function renderPassSecret() {
 
-  const content =
-    APP.currentContent;
+  app.innerHTML = `
 
+    <section class="screen private-transition">
 
-  const choices =
-    Array.isArray(
-      content?.choices
-    )
-      ? content.choices
-      : [];
-
-
-  return `
-
-    <section class="game-screen">
-
-      <div class="game-header">
-
-        <span>
-          TOUR ${APP.round}
-        </span>
-
-        <span>
-          CHOIX
-        </span>
-
+      <div class="phone-icon">
+        ☎
       </div>
 
 
       <div class="game-card">
 
-        <div class="game-label">
-          CHOIX IMPOSSIBLE
+        <div class="eyebrow">
+          TÉLÉPHONE
         </div>
 
-        <div class="game-main-text">
+
+        <h1>
+          Donne le téléphone à<br>
           ${escapeHTML(
-            content?.question ||
-            "Choisissez."
+            session.currentActor ||
+            "la personne désignée"
           )}
-        </div>
+        </h1>
+
+
+        <p>
+          Personne d'autre ne doit
+          regarder l'écran.
+        </p>
 
       </div>
 
 
-      <div class="choice-grid">
-
-        ${choices.map(
-          (choice, index) => `
-
-            <button
-              class="choice-btn"
-              onclick="
-                chooseChoice(${index})
-              "
-            >
-              ${escapeHTML(choice)}
-            </button>
-
-          `
-        ).join("")}
-
-      </div>
+      <button
+        class="primary-btn"
+        onclick="advancePhase()"
+      >
+        TÉLÉPHONE EN MAIN
+      </button>
 
     </section>
-
   `;
-
 }
 
 
-function chooseChoice(index) {
+/* ============================================================
+   SECRET
+   ============================================================ */
 
-  const choices =
-    APP.currentContent?.choices ||
-    [];
+function getPrivateContentHTML() {
+
+  const pool =
+    session.currentGame?.contentPool;
+
+  const content =
+    session.currentContent;
 
 
-  const choice =
-    choices[index];
+  if (!content) {
 
-
-  if (!choice) {
-    return;
+    return `
+      <p>
+        Information secrète indisponible.
+      </p>
+    `;
   }
 
 
-  APP.selectedChoice =
-    choice;
+  switch (pool) {
 
 
-  APP.success =
-    true;
+    case "FORBIDDEN_WORD":
 
+    case "TRAP_WORD":
+
+      return `
+
+        <div class="secret-value">
+          ${escapeHTML(
+            content.word || ""
+          )}
+        </div>
+
+        ${
+          Array.isArray(content.forbidden) &&
+          content.forbidden.length
+            ? `
+              <p>
+                À éviter aussi :
+                ${escapeHTML(
+                  content.forbidden.join(", ")
+                )}
+              </p>
+            `
+            : ""
+        }
+      `;
+
+
+    case "GUESS_WORD":
+
+      return `
+
+        <div class="secret-value">
+          ${escapeHTML(
+            content.word || ""
+          )}
+        </div>
+
+        ${
+          content.hint
+            ? `
+              <p>
+                Indice :
+                ${escapeHTML(
+                  content.hint
+                )}
+              </p>
+            `
+            : ""
+        }
+      `;
+
+
+    case "DESCRIPTION":
+
+      return `
+
+        <div class="secret-value">
+          ${escapeHTML(
+            content.word || ""
+          )}
+        </div>
+
+        ${
+          content.rule
+            ? `
+              <p>
+                ${escapeHTML(
+                  content.rule
+                )}
+              </p>
+            `
+            : ""
+        }
+      `;
+
+
+    case "STATEMENTS":
+
+      return `
+
+        <div class="secret-value">
+          ${escapeHTML(
+            content.instruction ||
+            ""
+          )}
+        </div>
+
+        ${
+          content.rule
+            ? `
+              <p>
+                ${escapeHTML(
+                  content.rule
+                )}
+              </p>
+            `
+            : ""
+        }
+      `;
+
+
+    default: {
+
+      const value =
+        typeof content === "string"
+          ? content
+          : (
+              content.expression ||
+              content.word ||
+              content.text ||
+              content.instruction ||
+              ""
+            );
+
+
+      return `
+        <div class="secret-value">
+          ${escapeHTML(value)}
+        </div>
+      `;
+    }
+  }
+}
+
+
+function renderSecretAction() {
+
+  const game =
+    session.currentGame;
+
+
+  app.innerHTML = `
+
+    <section class="screen private-screen">
+
+      <div class="private-warning">
+
+        SECRET —
+        ${escapeHTML(
+          session.currentActor ||
+          ""
+        )}
+
+      </div>
+
+
+      <div class="secret-card">
+
+        <div class="eyebrow">
+          NE PAS MONTRER
+        </div>
+
+
+        ${getPrivateContentHTML()}
+
+
+        <p class="secret-instruction">
+
+          Réalise le défi sans montrer
+          cette information au groupe.
+
+        </p>
+
+      </div>
+
+
+      <button
+        class="primary-btn"
+        onclick="secretActionDone()"
+      >
+        J'AI COMPRIS
+      </button>
+
+    </section>
+  `;
+}
+
+
+function secretActionDone() {
+
+  if (
+    typeof clearPrivateContent ===
+    "function"
+  ) {
+
+    clearPrivateContent();
+  }
+
+
+  /*
+   * La mission secrète continue
+   * sans écran intermédiaire.
+   */
 
   advancePhase();
-
 }
 
 
@@ -1898,431 +2143,110 @@ function chooseChoice(index) {
    VOTE
    ============================================================ */
 
-function getVotePrompt() {
-
-  const content =
-    APP.currentContent;
-
-
-  if (
-    typeof content ===
-    "string"
-  ) {
-
-    return content;
-
-  }
-
-
-  return (
-    content?.question ||
-    content?.text ||
-    content?.instruction ||
-    "Qui choisissez-vous ?"
-  );
-
-}
-
-
 function renderVote() {
 
-  const prompt =
-    getVotePrompt();
+  const players =
+    session.players;
 
 
-  return `
-
-    <section class="result-screen">
-
-      <div class="game-header">
-
-        <span>
-          TOUR ${APP.round}
-        </span>
-
-        <span>
-          VOTE
-        </span>
-
-      </div>
+  const content =
+    session.currentContent;
 
 
-      <div class="result-card">
-
-        <div class="game-label">
-          VOTE
-        </div>
-
-        <div class="game-main-text">
-          ${escapeHTML(prompt)}
-        </div>
-
-        <p class="game-subtext">
-          Désignez la personne choisie par le groupe.
-        </p>
-
-      </div>
+  const question =
+    content?.question ||
+    content?.text ||
+    content ||
+    "Qui choisissez-vous ?";
 
 
-      <div class="vote-list">
+  app.innerHTML = `
 
-        ${APP.players.map(
-          player => `
+    <section class="screen game-screen">
 
-            <button
-              class="choice-btn"
-              onclick="
-                selectVote('${escapeHTML(player)}')
-              "
-            >
-              ${escapeHTML(player)}
-            </button>
-
-          `
-        ).join("")}
-
-      </div>
-
-    </section>
-
-  `;
-
-}
+      ${gameHeader()}
 
 
-function selectVote(player) {
-
-  if (
-    !APP.players.includes(
-      player
-    )
-  ) {
-
-    return;
-
-  }
-
-
-  APP.voteTarget =
-    player;
-
-
-  APP.result = {
-
-    type: "VOTE",
-
-    target:
-      player
-
-  };
-
-
-  /*
-    IMPORTANT :
-
-    Le clic est directement
-    le choix du groupe.
-
-    PAS DE DEUXIÈME ÉCRAN
-    "CONFIRMER".
-
-    Le prochain écran est
-    directement la résolution.
-  */
-
-  advancePhase();
-
-}
-
-
-/* ============================================================
-   SECRET — PASSAGE DU TÉLÉPHONE
-   ============================================================ */
-
-function renderPassSecret() {
-
-  const player =
-    APP.currentActor ||
-    APP.currentTarget ||
-    "la personne désignée";
-
-
-  return `
-
-    <section class="private-transition">
-
-      <div class="private-top">
-
-        <div class="private-icon">
-          📱
-        </div>
+      <div class="game-card">
 
         <div class="eyebrow">
-          TÉLÉPHONE
+          VOTE
         </div>
 
+
         <h1>
-          Passe le téléphone à
-          <br>
-          ${escapeHTML(player)}
+          ${escapeHTML(question)}
         </h1>
 
+
         <p>
-          Personne d'autre ne doit regarder l'écran.
+          Désignez une seule personne.
         </p>
 
       </div>
 
 
-      <button
-        class="primary-btn"
-        onclick="phoneInHand()"
-      >
-        TÉLÉPHONE EN MAIN
-      </button>
+      <div class="choice-grid">
+
+        ${
+          players
+            .map(
+              (player, index) => `
+
+                <button
+                  class="choice-btn"
+                  onclick="selectVote(${index})"
+                >
+                  ${escapeHTML(player)}
+                </button>
+              `
+            )
+            .join("")
+        }
+
+      </div>
 
     </section>
-
   `;
-
-}
-
-
-function phoneInHand() {
-
-  advancePhase();
-
 }
 
 
 /* ============================================================
-   SECRET — CONTENU PRIVÉ
+   VOTE — AUCUNE CONFIRMATION
    ============================================================ */
 
-function getSecretTitle() {
+function selectVote(index) {
 
-  const content =
-    APP.currentContent;
-
-
-  switch (
-    APP.currentGame?.contentPool
-  ) {
-
-    case "EXPRESSION":
-
-      return content || "";
+  const player =
+    session.players[index];
 
 
-    case "MIME":
-
-      return content || "";
-
-
-    case "MISSION":
-
-      return content || "";
-
-
-    case "GUESS_WORD":
-
-      return content?.word || "";
-
-
-    case "DESCRIPTION":
-
-      return content?.word || "";
-
-
-    case "FORBIDDEN_WORD":
-
-      return content?.word || "";
-
-
-    case "TRAP_WORD":
-
-      return content?.word || "";
-
-
-    case "TRAP_PROMPT":
-
-      return "LE PIÈGE";
-
-
-    default:
-
-      return (
-        content?.word ||
-        content?.text ||
-        content?.instruction ||
-        content ||
-        APP.currentGame?.name ||
-        ""
-      );
-
+  if (!player) {
+    return;
   }
 
-}
 
+  session.votes = [
+    player
+  ];
 
-function getSecretInstruction() {
-
-  const content =
-    APP.currentContent;
-
-
-  switch (
-    APP.currentGame?.contentPool
-  ) {
-
-    case "EXPRESSION":
-
-      return "Fais deviner cette expression sans la prononcer.";
-
-
-    case "MIME":
-
-      return "Fais deviner uniquement avec des gestes.";
-
-
-    case "MISSION":
-
-      return "Accomplis cette mission sans te faire griller.";
-
-
-    case "GUESS_WORD":
-
-      return content?.hint
-        ? `Fais deviner ce mot. Indice : ${content.hint}`
-        : "Fais deviner ce mot sans le prononcer.";
-
-
-    case "DESCRIPTION":
-
-      return (
-        content?.rule ||
-        "Fais deviner ce mot."
-      );
-
-
-    case "FORBIDDEN_WORD":
-
-      return content?.forbidden
-        ? `Ne prononce surtout pas : ${content.forbidden}`
-        : "Évite le mot interdit.";
-
-
-    case "TRAP_WORD":
-
-      return content?.forbidden
-        ? `Piège : ${content.forbidden}`
-        : "Tends ton piège au groupe.";
-
-
-    case "TRAP_PROMPT":
-
-      return content ||
-        "Tends ton piège au groupe.";
-
-
-    default:
-
-      return (
-        content?.rule ||
-        content?.instruction ||
-        "Réalise le défi."
-      );
-
-  }
-
-}
-
-
-function renderSecretAction() {
-
-  const title =
-    getSecretTitle();
-
-
-  const instruction =
-    getSecretInstruction();
-
-
-  return `
-
-    <section class="private-screen">
-
-      <div class="private-top">
-
-        <div class="private-label">
-          SECRET
-        </div>
-
-
-        <div class="secret-card">
-
-          <div class="secret-label">
-            ${escapeHTML(
-              APP.currentActor ||
-              APP.currentTarget ||
-              ""
-            )}
-          </div>
-
-
-          <div class="secret-text">
-            ${escapeHTML(title)}
-          </div>
-
-
-          <div class="secret-subtext">
-            ${escapeHTML(instruction)}
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <button
-        class="primary-btn"
-        onclick="secretSeen()"
-      >
-        C'EST BON
-      </button>
-
-    </section>
-
-  `;
-
-}
-
-
-function secretSeen() {
 
   /*
-    MISSION SECRÈTE :
-
-    Le joueur reçoit sa mission,
-    puis elle continue dans la
-    soirée. Aucun écran public
-    supplémentaire.
-  */
+   * Le vote est immédiatement validé.
+   * Aucun écran CONFIRMER / CHANGER.
+   */
 
   if (
-    APP.currentGame?.id ===
-    "G015"
+    typeof setVotes === "function"
   ) {
 
-    finishRound();
-
-    return;
-
+    setVotes(
+      session.votes
+    );
   }
 
 
   advancePhase();
-
 }
 
 
@@ -2332,334 +2256,109 @@ function secretSeen() {
 
 function renderResolve() {
 
-  const phase =
-    getCurrentPhase();
+  const game =
+    session.currentGame;
 
 
   /*
-    ------------------------------------------------------------
-    SUCCESS CHECK
-    ------------------------------------------------------------
-  */
+   * Pour les votes :
+   * afficher le résultat directement.
+   */
 
   if (
-    phase ===
-    FLOW_PHASES.SUCCESS_CHECK
-  ) {
-
-    return renderSuccessCheck();
-
-  }
-
-
-  /*
-    ------------------------------------------------------------
-    VOTE
-    ------------------------------------------------------------
-  */
-
-  if (
-    APP.result?.type ===
-    "VOTE"
+    game?.flow?.includes(
+      FLOW_PHASES.VOTE
+    )
   ) {
 
     return renderVoteResult();
-
   }
 
 
   /*
-    ------------------------------------------------------------
-    CHOIX
-    ------------------------------------------------------------
-  */
+   * Pour les jeux de groupe simples.
+   */
 
   if (
-    APP.selectedChoice
+    game?.target ===
+    TARGET_MODES.ALL
   ) {
 
-    return renderChoiceResult();
-
+    return renderGroupResult();
   }
 
 
   /*
-    ------------------------------------------------------------
-    RÉSOLUTION GÉNÉRIQUE
-    ------------------------------------------------------------
-  */
+   * Pour les actions simples.
+   */
 
-  return renderGenericResult();
-
+  return renderSimpleResult();
 }
 
 
 /* ============================================================
-   SUCCESS CHECK
-   ============================================================ */
-
-function renderSuccessCheck() {
-
-  const player =
-    APP.currentActor ||
-    APP.currentTarget ||
-    "Alors ?";
-
-
-  return `
-
-    <section class="result-screen">
-
-      <div class="result-card">
-
-        <div class="game-label">
-          RÉUSSITE ?
-        </div>
-
-        <div class="game-main-text">
-          ${escapeHTML(player)}
-        </div>
-
-        <p class="game-subtext">
-          Tu as réussi le défi ?
-        </p>
-
-      </div>
-
-
-      <button
-        class="primary-btn"
-        onclick="resolveSuccess(true)"
-      >
-        OUI
-      </button>
-
-
-      <button
-        class="secondary-btn"
-        onclick="resolveSuccess(false)"
-      >
-        NON
-      </button>
-
-    </section>
-
-  `;
-
-}
-
-
-function resolveSuccess(success) {
-
-  APP.success =
-    Boolean(success);
-
-
-  const player =
-    APP.currentActor ||
-    APP.currentTarget;
-
-
-  if (success) {
-
-    APP.consequence =
-      null;
-
-  } else {
-
-    APP.consequence =
-      getConsequence(
-        player
-      );
-
-  }
-
-
-  /*
-    On ne crée PAS une nouvelle phase.
-
-    La résolution est immédiatement
-    affichée dans le même écran logique.
-  */
-
-  renderSuccessResult();
-
-}
-
-
-function renderSuccessResult() {
-
-  const player =
-    APP.currentActor ||
-    APP.currentTarget ||
-    "La personne concernée";
-
-
-  if (
-    APP.success
-  ) {
-
-    return renderSuccessResultHTML(
-      player
-    );
-
-  }
-
-
-  return renderFailureResultHTML(
-    player
-  );
-
-}
-
-
-function renderSuccessResultHTML(player) {
-
-  const root =
-    document.getElementById(
-      "app"
-    );
-
-
-  if (!root) {
-    return;
-  }
-
-
-  root.innerHTML = `
-
-    <section class="result-screen">
-
-      <div class="result-card">
-
-        <div class="game-label">
-          RÉUSSI
-        </div>
-
-        <div class="game-main-text">
-          Bien joué.
-        </div>
-
-        <p class="game-subtext">
-          ${escapeHTML(player)}
-          a réussi.
-        </p>
-
-      </div>
-
-
-      <button
-        class="primary-btn"
-        onclick="finishRound()"
-      >
-        TOUR SUIVANT
-      </button>
-
-    </section>
-
-  `;
-
-}
-
-
-function renderFailureResultHTML(player) {
-
-  const root =
-    document.getElementById(
-      "app"
-    );
-
-
-  if (!root) {
-    return;
-  }
-
-
-  root.innerHTML = `
-
-    <section class="result-screen">
-
-      <div class="result-card">
-
-        <div class="game-label">
-          CONSÉQUENCE
-        </div>
-
-        <div class="game-main-text">
-          ${escapeHTML(player)}
-        </div>
-
-        <p class="game-subtext">
-          ${escapeHTML(
-            APP.consequence
-          )}
-        </p>
-
-      </div>
-
-
-      <button
-        class="primary-btn"
-        onclick="finishRound()"
-      >
-        C'EST FAIT
-      </button>
-
-    </section>
-
-  `;
-
-}
-
-
-/* ============================================================
-   RÉSULTAT VOTE
+   RÉSULTAT DU VOTE
    ============================================================ */
 
 function renderVoteResult() {
 
+  const vote =
+    session.votes[0] || null;
+
+
   const target =
-    APP.result?.target ||
-    APP.voteTarget;
+    session.currentTargets[0] || null;
 
 
   const consequence =
-    APP.currentGame?.penalty ===
-    PENALTIES.LOSER
-      ? getConsequence(
-          target
-        )
+    vote
+      ? getConsequence()
       : null;
 
 
-  return `
+  session.consequence =
+    consequence;
 
-    <section class="result-screen">
 
-      <div class="result-card">
+  app.innerHTML = `
 
-        <div class="game-label">
+    <section class="screen result-screen">
+
+      <div class="game-card result-card">
+
+        <div class="eyebrow">
           RÉSULTAT
         </div>
 
-        <div class="game-main-text">
-          ${escapeHTML(
-            target ||
-            "Vote terminé."
-          )}
-        </div>
 
-        <p class="game-subtext">
-          Le groupe a choisi cette personne.
-        </p>
+        <h1>
+          ${escapeHTML(
+            vote ||
+            target ||
+            "Vote terminé"
+          )}
+        </h1>
+
+
+        ${
+          target
+            ? `
+              <p>
+                Cible du tour :
+                <strong>
+                  ${escapeHTML(target)}
+                </strong>
+              </p>
+            `
+            : ""
+        }
+
 
         ${
           consequence
             ? `
-              <div class="secret-subtext">
-                ${escapeHTML(
-                  consequence
-                )}
+              <div class="consequence">
+                ${escapeHTML(consequence)}
               </div>
             `
             : ""
@@ -2676,36 +2375,75 @@ function renderVoteResult() {
       </button>
 
     </section>
-
   `;
-
 }
 
 
 /* ============================================================
-   RÉSULTAT CHOIX
+   RÉSULTAT GROUPE
    ============================================================ */
 
-function renderChoiceResult() {
+function renderGroupResult() {
 
-  return `
+  app.innerHTML = `
 
-    <section class="result-screen">
+    <section class="screen result-screen">
 
-      <div class="result-card">
+      <div class="game-card result-card">
 
-        <div class="game-label">
-          CHOIX
+        <div class="eyebrow">
+          RÉSULTAT
         </div>
 
-        <div class="game-main-text">
-          ${escapeHTML(
-            APP.selectedChoice
-          )}
+
+        <h1>
+          Tour terminé.
+        </h1>
+
+
+        <p>
+          Tout le groupe a participé.
+        </p>
+
+      </div>
+
+
+      <button
+        class="primary-btn"
+        onclick="finishRound()"
+      >
+        C'EST FAIT
+      </button>
+
+    </section>
+  `;
+}
+
+
+/* ============================================================
+   RÉSULTAT SIMPLE
+   ============================================================ */
+
+function renderSimpleResult() {
+
+  app.innerHTML = `
+
+    <section class="screen result-screen">
+
+      <div class="game-card result-card">
+
+        <div class="eyebrow">
+          TOUR TERMINÉ
         </div>
 
-        <p class="game-subtext">
-          Le groupe peut maintenant débattre.
+
+        <h1>
+          C'est fait.
+        </h1>
+
+
+        <p>
+          Prêts pour le prochain défi ?
         </p>
 
       </div>
@@ -2719,31 +2457,151 @@ function renderChoiceResult() {
       </button>
 
     </section>
-
   `;
-
 }
 
 
 /* ============================================================
-   RÉSULTAT GÉNÉRIQUE
+   RÉUSSITE ?
    ============================================================ */
 
-function renderGenericResult() {
+function renderSuccessCheck() {
 
-  return `
+  const actor =
+    session.currentActor ||
+    session.currentTargets[0] ||
+    "Le joueur";
 
-    <section class="result-screen">
 
-      <div class="result-card">
+  app.innerHTML = `
 
-        <div class="game-label">
-          TERMINÉ
+    <section class="screen result-screen">
+
+      <div class="game-card result-card">
+
+        <div class="eyebrow">
+          RÉUSSITE ?
         </div>
 
-        <div class="game-main-text">
-          Tour terminé.
+
+        <h1>
+          ${escapeHTML(actor)}
+        </h1>
+
+
+        <p>
+          Le défi a-t-il été réussi ?
+        </p>
+
+      </div>
+
+
+      <div class="choice-grid">
+
+        <button
+          class="choice-btn success-choice"
+          onclick="resolveSuccess(true)"
+        >
+          OUI
+        </button>
+
+
+        <button
+          class="choice-btn failure-choice"
+          onclick="resolveSuccess(false)"
+        >
+          NON
+        </button>
+
+      </div>
+
+    </section>
+  `;
+}
+
+
+/* ============================================================
+   RÉUSSITE / ÉCHEC
+   ============================================================ */
+
+function resolveSuccess(success) {
+
+  session.success =
+    Boolean(success);
+
+
+  if (success) {
+
+    session.consequence =
+      null;
+
+  } else {
+
+    session.consequence =
+      getConsequence();
+  }
+
+
+  renderSuccessResult();
+}
+
+
+function renderSuccessResult() {
+
+  const actor =
+    session.currentActor ||
+    session.currentTargets[0] ||
+    "Le joueur";
+
+
+  const consequence =
+    session.consequence;
+
+
+  app.innerHTML = `
+
+    <section class="screen result-screen">
+
+      <div class="game-card result-card">
+
+        <div class="eyebrow">
+          ${
+            session.success
+              ? "RÉUSSI"
+              : "ÉCHEC"
+          }
         </div>
+
+
+        <h1>
+          ${
+            session.success
+              ? "Bien joué."
+              : "Raté."
+          }
+        </h1>
+
+
+        <p>
+          ${escapeHTML(actor)}
+        </p>
+
+
+        ${
+          consequence
+            ? `
+              <div class="consequence">
+                ${escapeHTML(
+                  consequence
+                )}
+              </div>
+            `
+            : `
+              <p>
+                Aucun gage.
+              </p>
+            `
+        }
 
       </div>
 
@@ -2752,13 +2610,11 @@ function renderGenericResult() {
         class="primary-btn"
         onclick="finishRound()"
       >
-        TOUR SUIVANT
+        C'EST FAIT
       </button>
 
     </section>
-
   `;
-
 }
 
 
@@ -2766,144 +2622,112 @@ function renderGenericResult() {
    CONSÉQUENCE
    ============================================================ */
 
-function getConsequence(player) {
+function getConsequence() {
 
-  if (
-    typeof CONFIG !==
-    "undefined" &&
-    CONFIG.PENALTIES?.DEFAULT
-  ) {
+  /*
+   * Le gage reste court et optionnel.
+   */
 
-    return CONFIG.PENALTIES.DEFAULT;
-
-  }
-
-  return "1 gorgée ou une alternative sans alcool";
-
+  return (
+    CONFIG.PENALTIES?.DEFAULT ||
+    "1 gorgée ou une alternative sans alcool"
+  );
 }
 
 
 /* ============================================================
-   FIN DU TOUR
+   DEBUG
    ============================================================ */
 
-function finishRound() {
+function validateApplication() {
 
-  stopTimer();
-
-  startNextRound();
-
-}
+  const errors = [];
 
 
-/* ============================================================
-   TIMER
-   ============================================================ */
+  if (!Array.isArray(GAMES)) {
 
-function startGameTimerIfNeeded() {
-
-  const game =
-    APP.currentGame;
-
-
-  if (
-    !game?.timer
-  ) {
-
-    return;
-
+    errors.push(
+      "GAMES n'est pas disponible."
+    );
   }
 
 
-  startTimer(
-    game.timer,
-    () => {
+  if (
+    typeof FLOW_PHASES ===
+    "undefined"
+  ) {
 
-      actionDone();
+    errors.push(
+      "FLOW_PHASES n'est pas disponible."
+    );
+  }
 
-    }
+
+  if (
+    typeof GAME_FLOW ===
+    "undefined"
+  ) {
+
+    errors.push(
+      "GAME_FLOW n'est pas disponible."
+    );
+  }
+
+
+  if (
+    typeof QUESTIONS ===
+    "undefined"
+  ) {
+
+    errors.push(
+      "QUESTIONS n'est pas disponible."
+    );
+  }
+
+
+  if (
+    errors.length
+  ) {
+
+    console.error(
+      "ERREURS APPLICATION :",
+      errors
+    );
+
+    return false;
+  }
+
+
+  console.log(
+    `SOIRÉE BUILD 08.8 — ${GAMES.length} jeux chargés.`
   );
 
-}
-
-
-function startTimer(
-  seconds,
-  callback
-) {
-
-  stopTimer();
-
-
-  APP.timerRemaining =
-    Number(seconds) || 0;
-
 
   if (
-    APP.timerRemaining <= 0
+    typeof validateGames ===
+    "function"
   ) {
 
-    return;
+    const result =
+      validateGames();
 
+
+    if (
+      result &&
+      !result.valid
+    ) {
+
+      console.error(
+        "ERREURS JEUX :",
+        result.errors
+      );
+
+      return false;
+    }
   }
 
 
-  APP.timer =
-    setInterval(
-      () => {
-
-        APP.timerRemaining--;
-
-
-        if (
-          APP.timerRemaining <= 0
-        ) {
-
-          stopTimer();
-
-
-          if (
-            typeof callback ===
-            "function"
-          ) {
-
-            callback();
-
-          }
-
-          return;
-
-        }
-
-
-        render();
-
-      },
-      1000
-    );
-
-}
-
-
-function stopTimer() {
-
-  if (
-    APP.timer
-  ) {
-
-    clearInterval(
-      APP.timer
-    );
-
-    APP.timer =
-      null;
-
-  }
-
-
-  APP.timerRemaining =
-    0;
-
+  return true;
 }
 
 
@@ -2913,90 +2737,41 @@ function stopTimer() {
 
 function showToast(message) {
 
-  const old =
-    document.querySelector(
-      ".toast"
-    );
+  document
+    .querySelector(".toast")
+    ?.remove();
 
 
-  if (old) {
-    old.remove();
-  }
+  const element =
+    document.createElement("div");
 
 
-  const toast =
-    document.createElement(
-      "div"
-    );
-
-
-  toast.className =
+  element.className =
     "toast";
 
 
-  toast.textContent =
+  element.textContent =
     message;
 
 
   document.body.appendChild(
-    toast
+    element
   );
 
 
-  clearTimeout(
-    APP.toastTimer
+  setTimeout(
+    () => element.remove(),
+    2200
   );
-
-
-  APP.toastTimer =
-    setTimeout(
-      () => {
-
-        toast.remove();
-
-      },
-      2500
-    );
-
 }
 
 
 /* ============================================================
-   DEBUG
+   INITIALISATION
    ============================================================ */
 
-window.SOIRE_DEBUG = {
+loadSession();
 
-  app:
-    APP,
+validateApplication();
 
-  games:
-    () =>
-      typeof GAMES !==
-      "undefined"
-        ? GAMES
-        : [],
-
-  questions:
-    () =>
-      typeof QUESTIONS !==
-      "undefined"
-        ? QUESTIONS
-        : {},
-
-  currentPhase:
-    () =>
-      getCurrentPhase(),
-
-  currentGame:
-    () =>
-      APP.currentGame,
-
-  validateGames:
-    () =>
-      typeof validateGames ===
-      "function"
-        ? validateGames()
-        : null
-
-};
+render();
